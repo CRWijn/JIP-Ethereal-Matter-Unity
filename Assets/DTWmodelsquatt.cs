@@ -4,7 +4,6 @@ using System.Collections.Generic; // Import List from System.Collections.Generic
 using System.Linq;
 using System.Text;
 using System.Collections;
-using System.IO;
 using DTW;
 
 public class DTWmodelsquat : MonoBehaviour
@@ -20,10 +19,40 @@ public class DTWmodelsquat : MonoBehaviour
 
     private int CounterA = 0;
     private int CounterB = 0;
+    //private int counter = 0;
 
-    private double[] x = new double[360];
-    private double[] y = new double[360];
+    private double[] x = new double[1];
+    private double[] y = new double[1];
     private double sum = 0;
+    private Animator animator;
+    int maxFrameCount = 0;
+
+    public void Start()
+    {
+        Application.targetFrameRate = 25;
+        animator = GetComponent<Animator>();
+
+        // Get all animation clips from the Animator
+        AnimationClip[] animationClips = animator.runtimeAnimatorController.animationClips;
+
+        // Iterate through all animation clips
+        foreach (AnimationClip clip in animationClips)
+        {
+            int frameCount = Mathf.RoundToInt(clip.frameRate * clip.length);
+            if (frameCount > maxFrameCount)
+            {
+                maxFrameCount = frameCount;
+            }
+        }
+
+        // Print the number of frames in the longest animation
+        Debug.Log("Max Frame Count: " + maxFrameCount);
+        Array.Resize<double>(ref x, maxFrameCount);
+        Array.Resize<double>(ref y, maxFrameCount);
+        Debug.Log("lengthe x : " + x.Length);
+    }
+
+
 
     public void Update()
     {
@@ -38,13 +67,14 @@ public class DTWmodelsquat : MonoBehaviour
 
             x[CounterA] = anglesnel;
             y[CounterB] = angletraag;
-
-            if (CounterA == 359)
+           
+            if (CounterA == (maxFrameCount-1))
             {
                 SimpleDTW simpleDTW = new SimpleDTW(x, y);
                 simpleDTW.computeDTW();
                 double[,] f = simpleDTW.getFMatrix();
-                //Debug.Log (f[15,15]);
+            //Debug.Log("lengthe DTW matrix: " + f.Length);
+               
                 int i = x.Length;
                 int j = y.Length;
                 while (i > 0 || j > 0)
@@ -62,7 +92,7 @@ public class DTWmodelsquat : MonoBehaviour
                         i--;
                         j--;
                     }
-                    //Debug.Log ("i="+i+" ,j="+j);
+                   
 
                     // Extract data based on the matched frames (i and j)
                     if (i < x.Length && j < y.Length)
@@ -72,27 +102,20 @@ public class DTWmodelsquat : MonoBehaviour
 
                         // Do something with the extracted data (e.g., print or store it)
                         Debug.Log("i =" + i + " : " + valueFromX + " j = " + j + " : " + valueFromY + " Difference = " + (valueFromX - valueFromY));
-                        //Debug.Log(f[1,1]);
+                        
                     }
                 }
 
                 sum = simpleDTW.getSum();
-                CounterA = 0;
-                CounterB = 0;
+            //counter = 0;
+            CounterA = 0;
+            CounterB = 0;
             }
             else
             {
                 CounterA++;
                 CounterB++;
+                //counter++;
             }
      }
-
-
-
-
-        //outputTrigger = ControlOutput("outputTrigger");
-        //myValueA = ValueInput<double>("myValueA");
-        //myValueB = ValueInput<double>("myValueB");
-        //resultA = ValueOutput<double>("resultA", (flow) => resultValueA);
-        //resultB = ValueOutput<double>("resultB", (flow) => resultValueB);
 }
