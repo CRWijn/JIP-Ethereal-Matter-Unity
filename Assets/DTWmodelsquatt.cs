@@ -12,20 +12,18 @@ public class DTWmodelsquat : MonoBehaviour
 {
     public GameObject squatsnel;
     public GameObject squattraag;
-    public Transform heuptraag;
-    public Transform knietraag;
-    public Transform enkeltraag;
-    public Transform heupsnel;
-    public Transform kniesnel;
-    public Transform enkelsnel;
-    public bodyAngle.bodyAngle leftKneeFast;
-    public bodyAngle.bodyAngle leftKneeSlow;
+    public bodyAngle.bodyAngle leftKneeLive;
+    public bodyAngle.bodyAngle leftKneeRef;
+    public bodyAngle.bodyAngle leftAnkleLive;
+    public bodyAngle.bodyAngle leftAnkleRef;
 
-    int CounterA = 0;
-    int CounterB = 0;
+    int CounterLive = 0;
+    int CounterRef = 0;
 
-    double[] x = new double[120];
-    double[] y = new double[120];
+    double[] Live = new double[120];
+    double[] Ref = new double[120];
+    double[] lAnkleLive = new double[120];
+    double[] lAnkleRef = new double[120];
     double sum = 0;
 
     bool written = false;
@@ -53,37 +51,37 @@ public class DTWmodelsquat : MonoBehaviour
 
         // Print the number of frames in the longest animation
         Debug.Log("Max Frame Count: " + maxFrameCount);
-        Array.Resize<double>(ref x, maxFrameCount);
-        Array.Resize<double>(ref y, maxFrameCount);
-        Debug.Log("lengthe x : " + x.Length);
+        Array.Resize<double>(ref Live, maxFrameCount);
+        Array.Resize<double>(ref Ref, maxFrameCount);
+        Array.Resize<double>(ref lAnkleLive, maxFrameCount);
+        Array.Resize<double>(ref lAnkleRef, maxFrameCount);
+        Debug.Log("lengthe x : " + Live.Length);
     }
 
     public void Update()
-    {
-            //Making the resultValue equal to the input value from myValueA concatenating it with myValueB.
-            Vector3 bovenbeentraag = heuptraag.position - knietraag.position;
-            Vector3 onderbeentraag = enkeltraag.position - knietraag.position;
-            Vector3 bovenbeensnel = heupsnel.position - kniesnel.position;
-            Vector3 onderbeensnel = enkelsnel.position - kniesnel.position;
-            
-            //float anglesnel = Vector3.Angle(onderbeensnel, bovenbeensnel);
-            //float angletraag = Vector3.Angle(onderbeentraag, bovenbeentraag);
-            float anglesnel = leftKneeFast.getAngle();
-            float angletraag = leftKneeSlow.getAngle();
+    {            
+        //Defining the angles
+            float lKneeAngleLive = leftKneeLive.getAngle();
+            float lKneeAngleRef = leftKneeRef.getAngle();
+            float lAnkleAngleLive = leftAnkleLive.getAngle();
+            float lAnkleAngleRef = leftAnkleRef.getAngle();
 
-            x[CounterA] = anglesnel;
-            y[CounterB] = angletraag;
+        //Filling the angle matrices per frame
+            Live[CounterLive] = lKneeAngleLive;
+            Ref[CounterRef] = lKneeAngleRef;
+            lAnkleLive[CounterLive] = lAnkleAngleLive;
+            lAnkleRef[CounterRef] = lAnkleAngleRef;
 
-        if (CounterA == (maxFrameCount - 1))
+        //DTW script usage and filling in the DTW matrix and matching frames
+        if (CounterLive == (maxFrameCount - 1))
         {
-            SimpleDTW simpleDTW = new SimpleDTW(x, y);
+            SimpleDTW simpleDTW = new SimpleDTW(Live, Ref);
             simpleDTW.computeDTW();
             double[,] f = simpleDTW.getFMatrix();
-            //Debug.Log (f[15,15]);
-            int i = x.Length;
-            int j = y.Length;
-            double sumX = x[i - 1];
-            double sumY = y[j - 1];
+            int i = Live.Length;
+            int j = Ref.Length;
+            double sumX = Live[i - 1];
+            double sumY = Ref[j - 1];
             int counterX = 1;
             int counterY = 1;
             double averageX = 1;
@@ -97,13 +95,13 @@ public class DTWmodelsquat : MonoBehaviour
                 if (!written)
                 {
                     Debug.Log("Writing x and y");
-                    foreach (double x_val in x)
+                    foreach (double x_val in Live)
                     {
                         sw.Write(x_val);
                         sw.Write(", ");
                     }
                     sw.Write("\n");
-                    foreach (double y_val in y)
+                    foreach (double y_val in Ref)
                     {
                         sw.Write(y_val);
                         sw.Write(", ");
@@ -114,13 +112,13 @@ public class DTWmodelsquat : MonoBehaviour
                 {
                     if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
                     {
-                        sumX = sumX + x[i - 1];
+                        sumX = sumX + Live[i - 1];
                         counterX++;
                         i--;
                     }
                     else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
                     {
-                        sumY = sumY + y[j - 1];
+                        sumY = sumY + Ref[j - 1];
                         counterY++;
                         j--;
                     }
@@ -131,18 +129,17 @@ public class DTWmodelsquat : MonoBehaviour
                         AbsDiffXY = Math.Abs(averageX - averageY);
                         i--;
                         j--;
-                        sumX = x[i];
-                        sumY = y[j];
+                        sumX = Live[i];
+                        sumY = Ref[j];
                         counterX = 1;
                         counterY = 1;
                     }
-                    //Debug.Log ("i="+i+" ,j="+j);
 
                     // Extract data based on the matched frames (i and j)
-                    if (i < x.Length && j < y.Length)
+                    if (i < Live.Length && j < Ref.Length)
                     {
-                        double valueFromX = x[i];  // Value from array x at index i
-                        double valueFromY = y[j];  // Value from array y at index j
+                        double valueFromX = Live[i];  // Value from array x at index i
+                        double valueFromY = Ref[j];  // Value from array y at index j
 
                         // Do something with the extracted data (e.g., print or store it)
                         Debug.Log("i =" + i + " : " + valueFromX + " j = " + j + " : " + valueFromY + " Difference = " + Math.Abs(valueFromX - valueFromY));
@@ -158,15 +155,35 @@ public class DTWmodelsquat : MonoBehaviour
                 }
 
                 sum = simpleDTW.getSum();
-                CounterA = 0;
-                CounterB = 0;
+                CounterLive = 0;
+                CounterRef = 0;
             }
             written = true;
+            // Extract data based on the matched frames (i and j)
+        //    if (i < Live.Length && j < Ref.Length)
+        //    {
+        //        double AbsDiffCD = Math.Abs(lAnkleLive[i] - lAnkleRef[j]);
+
+
+        //        double AbsDiffAB2 = Math.Abs(Live[i] - Ref[j]); 
+        //        double AbsDiffCD2 = Math.Abs(lAnkleLive[i] - lAnkleRef[j]);
+
+        //        double valueFromX = Live[i];  
+        //        double valueFromY = Ref[j]; 
+        //        double AbsDiffAB = Math.Abs(valueFromX - valueFromY);
+
+        //        double valueFromC = lAnkleLive[i]; 
+        //        double valueFromD = lAnkleRef[j];  
+        //        double AbsDiffCD = Math.Abs(valueFromC - valueFromD);
+
+        //        Debug.Log((AbsDiffAB - AbsDiffCD));
+        //        Debug.Log((AbsDiffAB - AbsDiffCD) + " " + (AbsDiffAB2 - AbsDiffCD2));
+        //    }
         }
         else
         {
-            CounterA++;
-            CounterB++;
+            CounterLive++;
+            CounterRef++;
         }
      }
 }
