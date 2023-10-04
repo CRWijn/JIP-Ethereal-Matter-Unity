@@ -6,6 +6,7 @@ using System.Text;
 using System.Collections;
 using System.IO;
 using DTW;
+using bodyAngle;
 
 public class DTWmodelsquat : MonoBehaviour
 {
@@ -17,17 +18,19 @@ public class DTWmodelsquat : MonoBehaviour
     public Transform heupsnel;
     public Transform kniesnel;
     public Transform enkelsnel;
+    public bodyAngle.bodyAngle leftKneeFast;
+    public bodyAngle.bodyAngle leftKneeSlow;
 
-    private int CounterA = 0;
-    private int CounterB = 0;
+    int CounterA = 0;
+    int CounterB = 0;
 
-    private double[] x = new double[120];
-    private double[] y = new double[120];
-    private double sum = 0;
+    double[] x = new double[120];
+    double[] y = new double[120];
+    double sum = 0;
 
     bool written = false;
     
-    private Animator animator;
+    Animator animator;
     int maxFrameCount = 0;
 
     public void Start()
@@ -59,12 +62,14 @@ public class DTWmodelsquat : MonoBehaviour
     {
             //Making the resultValue equal to the input value from myValueA concatenating it with myValueB.
             Vector3 bovenbeentraag = heuptraag.position - knietraag.position;
-            Vector3 onderbeentraag = knietraag.position - enkeltraag.position;
+            Vector3 onderbeentraag = enkeltraag.position - knietraag.position;
             Vector3 bovenbeensnel = heupsnel.position - kniesnel.position;
-            Vector3 onderbeensnel = kniesnel.position - enkelsnel.position;
+            Vector3 onderbeensnel = enkelsnel.position - kniesnel.position;
             
-            float anglesnel = Vector3.Angle(onderbeentraag, bovenbeentraag);
-            float angletraag = Vector3.Angle(onderbeensnel, bovenbeensnel);
+            //float anglesnel = Vector3.Angle(onderbeensnel, bovenbeensnel);
+            //float angletraag = Vector3.Angle(onderbeentraag, bovenbeentraag);
+            float anglesnel = leftKneeFast.getAngle();
+            float angletraag = leftKneeSlow.getAngle();
 
             x[CounterA] = anglesnel;
             y[CounterB] = angletraag;
@@ -150,13 +155,13 @@ public class DTWmodelsquat : MonoBehaviour
                             sw.Write(j);
                         }
                     }
-                    written = true;
                 }
 
                 sum = simpleDTW.getSum();
                 CounterA = 0;
                 CounterB = 0;
             }
+            written = true;
         }
         else
         {
