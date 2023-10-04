@@ -1,1 +1,10 @@
-
+Library/
+Logs/
+Packages/
+ProjectSettings/
+Temp/
+UserSettings/
+Assets/Scenes
+Assets/*.fbx
+Assets/*.meta
+Assets/*.controller
