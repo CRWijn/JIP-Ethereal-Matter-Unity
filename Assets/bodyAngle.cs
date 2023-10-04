@@ -9,12 +9,19 @@ namespace bodyAngle{
         public Transform top;
         public Transform middle;
         public Transform bottom;
+        public double errorMargin;
+        public string badFormMsg;
 
         public float getAngle()
         {
             Vector3 upperVec = top.position - middle.position;
             Vector3 lowerVec = bottom.position - middle.position;
             return Vector3.Angle(upperVec, lowerVec);
+        }
+
+        public void printMsg()
+        {
+            Debug.Log(badFormMsg);
         }
 
     }
