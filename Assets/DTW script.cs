@@ -90,35 +90,35 @@ namespace DTW
 
         public double computeFForward()
         //Self-made DTW
-            {
-                for (int i = 1; i <= x.Length; i++)
-                { 
-                    f[i,1] = f[i-1,1] + distance[i,1];
-                }
-                for (int j = 1; j <= y.Length; j++)
-                { 
-                    f[1,j] = f[1,j-1] + distance[1,j];
-                }              
-                for (int i = 1; i <= x.Length; ++i)
-                {
-                    for (int j = 1; j <= y.Length; ++j)
-                    {
-                        if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
-                        {
-                            f[i, j] = distance[i, j] + f[i - 1, j];
-                        }
-                        else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
-                        {
-                            f[i, j] = distance[i, j] + f[i, j - 1];
-                        }
-                        else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j])
-                        {
-                            f[i, j] = distance[i, j] + f[i - 1, j - 1];
-                        }
-                    }
-                }
-                return f[x.Length, y.Length];
-            }
+            // {
+            //     for (int i = 1; i <= x.Length; i++)
+            //     { 
+            //         f[i,1] = f[i-1,1] + distance[i,1];
+            //     }
+            //     for (int j = 1; j <= y.Length; j++)
+            //     { 
+            //         f[1,j] = f[1,j-1] + distance[1,j];
+            //     }              
+            //     for (int i = 1; i <= x.Length; ++i)
+            //     {
+            //         for (int j = 1; j <= y.Length; ++j)
+            //         {
+            //             if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
+            //             {
+            //                 f[i, j] = distance[i, j] + f[i - 1, j];
+            //             }
+            //             else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
+            //             {
+            //                 f[i, j] = distance[i, j] + f[i, j - 1];
+            //             }
+            //             else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j])
+            //             {
+            //                 f[i, j] = distance[i, j] + f[i - 1, j - 1];
+            //             }
+            //         }
+            //     }
+            //     return f[x.Length, y.Length];
+            // }
         
         
         
@@ -129,27 +129,27 @@ namespace DTW
         
         //Original DTW
         
-        // {
-        //     for (int i = 1; i <= x.Length; ++i)
-        //     {
-        //         for (int j = 1; j <= y.Length; ++j)
-        //         {
-        //             if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
-        //             {
-        //                 f[i, j] = distance[i - 1, j - 1] + f[i - 1, j];
-        //             }
-        //             else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
-        //             {
-        //                 f[i, j] = distance[i - 1, j - 1] + f[i, j - 1];
-        //             }
-        //             else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j])
-        //             {
-        //                 f[i, j] = distance[i - 1, j - 1] + f[i - 1, j - 1];
-        //             }
-        //         }
-        //     }
-        //     return f[x.Length, y.Length];
-        // }
+        {
+            for (int i = 1; i <= x.Length; ++i)
+            {
+                for (int j = 1; j <= y.Length; ++j)
+                {
+                    if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
+                    {
+                        f[i, j] = distance[i - 1, j - 1] + f[i - 1, j];
+                    }
+                    else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
+                    {
+                        f[i, j] = distance[i - 1, j - 1] + f[i, j - 1];
+                    }
+                    else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j])
+                    {
+                        f[i, j] = distance[i - 1, j - 1] + f[i - 1, j - 1];
+                    }
+                }
+            }
+            return f[x.Length, y.Length];
+        }
 
         public double computeFBackward(int i, int j)
         {

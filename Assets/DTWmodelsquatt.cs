@@ -19,11 +19,11 @@ public class DTWmodelsquat : MonoBehaviour
 
     private int CounterA = 0;
     private int CounterB = 0;
-    //private int counter = 0;
 
-    private double[] x = new double[1];
-    private double[] y = new double[1];
+    private double[] x = new double[360];
+    private double[] y = new double[360];
     private double sum = 0;
+    
     private Animator animator;
     int maxFrameCount = 0;
 
@@ -52,8 +52,6 @@ public class DTWmodelsquat : MonoBehaviour
         Debug.Log("lengthe x : " + x.Length);
     }
 
-
-
     public void Update()
     {
             //Making the resultValue equal to the input value from myValueA concatenating it with myValueB.
@@ -67,32 +65,50 @@ public class DTWmodelsquat : MonoBehaviour
 
             x[CounterA] = anglesnel;
             y[CounterB] = angletraag;
-           
+
             if (CounterA == (maxFrameCount-1))
             {
                 SimpleDTW simpleDTW = new SimpleDTW(x, y);
                 simpleDTW.computeDTW();
                 double[,] f = simpleDTW.getFMatrix();
-            //Debug.Log("lengthe DTW matrix: " + f.Length);
-               
+                //Debug.Log (f[15,15]);
                 int i = x.Length;
                 int j = y.Length;
+                double sumX = x[i-1];
+                double sumY = y[j-1];
+                int counterX = 1;
+                int counterY = 1;
+                double averageX =1;
+                double averageY = 1;
+                double AbsDiffXY =1;
+
                 while (i > 0 || j > 0)
                 {
                     if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
                     {
+                        sumX = sumX + x[i-1];
+	                    counterX++;
                         i--;
                     }
                     else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
                     {
+                        sumY = sumY + y[j-1];
+	                    counterY++;
                         j--;
                     }
                     else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j])
                     {
+                        averageX = sumX/(double)counterX;
+	                    averageY = sumY/(double)counterY;
+	                    AbsDiffXY = Math.Abs(averageX - averageY);
                         i--;
                         j--;
+                        sumX = x[i];
+                        sumY = y[j];
+                        counterX = 1;
+                        counterY = 1;
                     }
-                   
+                    //Debug.Log ("i="+i+" ,j="+j);
 
                     // Extract data based on the matched frames (i and j)
                     if (i < x.Length && j < y.Length)
@@ -101,21 +117,23 @@ public class DTWmodelsquat : MonoBehaviour
                         double valueFromY = y[j];  // Value from array y at index j
 
                         // Do something with the extracted data (e.g., print or store it)
-                        Debug.Log("i =" + i + " : " + valueFromX + " j = " + j + " : " + valueFromY + " Difference = " + (valueFromX - valueFromY));
-                        
+                        Debug.Log("i =" + i + " : " + valueFromX + " j = " + j + " : " + valueFromY + " Difference = " + Math.Abs(valueFromX - valueFromY));
+                        //Debug.Log(f[1,1]);
                     }
                 }
 
                 sum = simpleDTW.getSum();
-            //counter = 0;
-            CounterA = 0;
-            CounterB = 0;
+                CounterA = 0;
+                CounterB = 0;
+                print_matrix(f, x.Length, y.Length);
+                //sum = simpleDTW.getSum();
+                CounterA = 0;
+                CounterB = 0;
             }
             else
             {
                 CounterA++;
                 CounterB++;
-                //counter++;
             }
      }
 }
