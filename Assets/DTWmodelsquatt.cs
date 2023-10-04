@@ -20,9 +20,11 @@ public class DTWmodelsquat : MonoBehaviour
     private int CounterA = 0;
     private int CounterB = 0;
 
-    private double[] x = new double[360];
-    private double[] y = new double[360];
+    private double[] x = new double[120];
+    private double[] y = new double[120];
     private double sum = 0;
+
+    bool written = false;
     
     private Animator animator;
     int maxFrameCount = 0;
@@ -82,51 +84,70 @@ public class DTWmodelsquat : MonoBehaviour
                 double averageY = 1;
                 double AbsDiffXY =1;
 
-                while (i > 0 || j > 0)
-                {
-                    if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
-                    {
-                        sumX = sumX + x[i-1];
-	                    counterX++;
-                        i--;
-                    }
-                    else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
-                    {
-                        sumY = sumY + y[j-1];
-	                    counterY++;
-                        j--;
-                    }
-                    else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j])
-                    {
-                        averageX = sumX/(double)counterX;
-	                    averageY = sumY/(double)counterY;
-	                    AbsDiffXY = Math.Abs(averageX - averageY);
-                        i--;
-                        j--;
-                        sumX = x[i];
-                        sumY = y[j];
-                        counterX = 1;
-                        counterY = 1;
-                    }
-                    //Debug.Log ("i="+i+" ,j="+j);
 
-                    // Extract data based on the matched frames (i and j)
-                    if (i < x.Length && j < y.Length)
+                string path = Directory.GetCurrentDirectory();
+                using (StreamWriter sw = new StreamWriter(path + "/output.txt")) {
+                    if (!written) {
+                        Debug.Log("Writing x and y");
+                        foreach (double x_val in x) {
+                            sw.Write(x_val);
+                            sw.Write(", ");
+                        }
+                        sw.Write("\n");
+                        foreach (double y_val in y) {
+                            sw.Write(y_val);
+                            sw.Write(", ");
+                        }
+                        sw.Write("\n");
+                      }
+                    while (i > 0 || j > 0)
                     {
-                        double valueFromX = x[i];  // Value from array x at index i
-                        double valueFromY = y[j];  // Value from array y at index j
+                        if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
+                        {
+                            sumX = sumX + x[i-1];
+	                        counterX++;
+                            i--;
+                        }
+                        else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
+                        {
+                            sumY = sumY + y[j-1];
+	                        counterY++;
+                            j--;
+                        }
+                        else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j])
+                        {
+                            averageX = sumX/(double)counterX;
+	                        averageY = sumY/(double)counterY;
+	                        AbsDiffXY = Math.Abs(averageX - averageY);
+                            i--;
+                            j--;
+                            sumX = x[i];
+                            sumY = y[j];
+                            counterX = 1;
+                            counterY = 1;
+                        }
+                        //Debug.Log ("i="+i+" ,j="+j);
 
-                        // Do something with the extracted data (e.g., print or store it)
-                        Debug.Log("i =" + i + " : " + valueFromX + " j = " + j + " : " + valueFromY + " Difference = " + Math.Abs(valueFromX - valueFromY));
-                        //Debug.Log(f[1,1]);
+                        // Extract data based on the matched frames (i and j)
+                        if (i < x.Length && j < y.Length)
+                        {
+                            double valueFromX = x[i];  // Value from array x at index i
+                            double valueFromY = y[j];  // Value from array y at index j
+
+                            // Do something with the extracted data (e.g., print or store it)
+                            Debug.Log("i =" + i + " : " + valueFromX + " j = " + j + " : " + valueFromY + " Difference = " + Math.Abs(valueFromX - valueFromY));
+                            //Debug.Log(f[1,1]);
+                        if (!written) {
+                            sw.Write("i:");
+                            sw.Write(i);
+                            sw.Write("j:");
+                            sw.Write(j);
+                        }
                     }
+                    written = true;
                 }
 
                 sum = simpleDTW.getSum();
-                CounterA = 0;
-                CounterB = 0;
-                print_matrix(f, x.Length, y.Length);
-                //sum = simpleDTW.getSum();
                 CounterA = 0;
                 CounterB = 0;
             }
