@@ -56,5 +56,30 @@ namespace bodyAngle{
         {
             double averageError = this.sumDiff / (double) totalLength;
         }
+
+        public void saveRef(int ndx)
+        {
+            this.refData[ndx] = this.getAngle();
+            Debug.Log("Saving ref data");
+        }
+
+        public void storeReference() {
+            string path = Directory.GetCurrentDirectory();
+            using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt", true))
+            {
+                foreach (double value in this.refData)
+                {
+                    sw.Write(value + " ");
+                }
+            }
+        }
+
+        public void resetFile() {
+            string path = Directory.GetCurrentDirectory();
+            using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt", true))
+            {
+                sw.Write("");
+            }
+        }
     }
 }
