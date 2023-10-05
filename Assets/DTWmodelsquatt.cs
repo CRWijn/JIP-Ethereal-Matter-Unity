@@ -14,7 +14,7 @@ public class DTWmodelsquat : MonoBehaviour
     public bodyAngle.bodyAngle leftKneeRef;
     //public bodyAngle.bodyAngle leftAnkleLive;
     //public bodyAngle.bodyAngle leftAnkleRef;  
-    //public bodyAngle.bodyAngle[] joints;
+    public bodyAngle.bodyAngle[] joints;
 
     int CounterLive = 0;
     int CounterRef = 0;
@@ -59,35 +59,49 @@ public class DTWmodelsquat : MonoBehaviour
 
     public void Update()
     {            
+
+        foreach (bodyAngle.bodyAngle joint in joints)
+        {
+            joint.saveData(CounterLive);
+        }
         //Defining the angles
-            float lKneeAngleLive = leftKneeLive.getAngle();
-            float lKneeAngleRef = leftKneeRef.getAngle();
+            //float lKneeAngleLive = leftKneeLive.getAngle();
+            //float lKneeAngleRef = leftKneeRef.getAngle();
             //float lAnkleAngleLive = leftAnkleLive.getAngle();
             //float lAnkleAngleRef = leftAnkleRef.getAngle();
 
         //Filling the angle matrices per frame
-            Live[CounterLive] = lKneeAngleLive;
-            Ref[CounterRef] = lKneeAngleRef;
+            //Live[CounterLive] = lKneeAngleLive;
+            //Ref[CounterRef] = lKneeAngleRef;
             //lAnkleLive[CounterLive] = lAnkleAngleLive;
             //lAnkleRef[CounterRef] = lAnkleAngleRef;
 
         //DTW script usage and filling in the DTW matrix and matching frames
         if (CounterLive == (maxFrameCount - 1))
         {
-            SimpleDTW simpleDTW = new SimpleDTW(Live, Ref);
+            SimpleDTW simpleDTW = new SimpleDTW(joints[0].liveData, joints[0].refData);
             simpleDTW.computeDTW();
             double[,] f = simpleDTW.getFMatrix();
-            int i = Live.Length;
-            int j = Ref.Length;
-            double sumX = Live[i - 1];
-            double sumY = Ref[j - 1];
+            int i = joints[0].liveData.Length;
+            int j = joints[0].refData.Length;
+
+            foreach (bodyAngle.bodyAngle joint in joints)
+            {
+                joint.sumLive = joint.liveData[i - 1];
+                joint.sumRef = joint.refData[j - 1];
+                joint.sumDiff = 0;
+            }
+
+            //double sumX = Live[i - 1];
+            //double sumY = Ref[j - 1];
+            //double averageX = 1;
+            //double averageY = 1;
+            //double AbsDiffXY = 1;
             int counterX = 1;
             int counterY = 1;
-            double averageX = 1;
-            double averageY = 1;
+            int totalLength = 0;
             int di = 1;
             int dj = 1;
-            double AbsDiffXY = 1;
 
 
             string path = Directory.GetCurrentDirectory();
@@ -112,25 +126,40 @@ public class DTWmodelsquat : MonoBehaviour
                 {
                     if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1]) //Left
                     {
-                        if (dj == 1 && i != (Live.Length-1) && j != (Ref.Length-1)) //Diagonal or Down
+                        if (dj == 1 && i != (joints[0].liveData.Length-1) && j != (joints[0].refData.Length-1)) //Diagonal or Down
                         {
-                            averageX = sumX / (double)counterX;
-                            averageY = sumY / (double)counterY;
-                            sw.Write("x:");
-                            sw.Write(averageX);
-                            sw.Write("y:");
-                            sw.Write(averageY);
-                            AbsDiffXY = Math.Abs(averageX - averageY);
-                            Debug.Log(i + ", " + j + ": Diff X and Y " + AbsDiffXY);
-                            sumX = Live[i-1];
-                            sumY = Ref[j-1];
+                            foreach (bodyAngle.bodyAngle joint in joints)
+                            {
+                                joint.avgLive = joint.sumLive / (double) counterX;
+                                joint.avgRef = joint.sumRef / (double) counterY;
+
+                                joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
+
+                                joint.sumLive = joint.liveData[i - 1];
+                                joint.sumRef = joint.refData[j - 1];
+                            }
+                            //averageX = sumX / (double)counterX;
+                            //averageY = sumY / (double)counterY;
+                            //sw.Write("x:");
+                            //sw.Write(averageX);
+                            //sw.Write("y:");
+                            //sw.Write(averageY);
+                            //AbsDiffXY = Math.Abs(averageX - averageY);
+                            //Debug.Log(i + ", " + j + ": Diff X and Y " + AbsDiffXY);
+                            //sumX = Live[i-1];
+                            //sumY = Ref[j-1];
                             counterX = 1;
                             counterY = 1;
+                            totalLength++;
                         }
                         else
                         {
-                            sumX += Live[i-1];
-                            counterX += 1;
+                            foreach (bodyAngle.bodyAngle joint in joints)
+                            {
+                                joint.sumLive = joint.liveData[i - 1];
+                            }
+                            //sumX += Live[i-1];
+                            counterX++;
                         }
                         di = 1;
                         dj = 0;
@@ -140,23 +169,38 @@ public class DTWmodelsquat : MonoBehaviour
                     {
                         if (di == 1 && i != (Live.Length-1) && j != (Ref.Length-1)) //Diagonal or Left
                         {
-                            averageX = sumX / (double)counterX;
-                            averageY = sumY / (double)counterY;
-                            sw.Write("x:");
-                            sw.Write(averageX);
-                            sw.Write("y:");
-                            sw.Write(averageY);
-                            AbsDiffXY = Math.Abs(averageX - averageY);
-                            Debug.Log(i + ", " + j + ": Diff X and Y " + AbsDiffXY);
-                            sumX = Live[i-1];
-                            sumY = Ref[j-1];
+                            foreach (bodyAngle.bodyAngle joint in joints)
+                            {
+                                joint.avgLive = joint.sumLive / (double) counterX;
+                                joint.avgRef = joint.sumRef / (double) counterY;
+
+                                joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
+
+                                joint.sumLive = joint.liveData[i - 1];
+                                joint.sumRef = joint.refData[j - 1];
+                            }
+                            //averageX = sumX / (double)counterX;
+                            //averageY = sumY / (double)counterY;
+                            //sw.Write("x:");
+                            //sw.Write(averageX);
+                            //sw.Write("y:");
+                            //sw.Write(averageY);
+                            //AbsDiffXY = Math.Abs(averageX - averageY);
+                            //Debug.Log(i + ", " + j + ": Diff X and Y " + AbsDiffXY);
+                            //sumX = Live[i-1];
+                            //sumY = Ref[j-1];
                             counterX = 1;
                             counterY = 1;
+                            totalLength++;
                         }
                         else
                         {
-                            sumY += Ref[j-1];
-                            counterY += 1;
+                            foreach (bodyAngle.bodyAngle joint in joints)
+                            {
+                                joint.sumRef = joint.refData[j - 1];
+                            }   
+                            //sumY += Ref[j-1];
+                            counterY++;
                         }
                         di = 0;
                         dj = 1;
@@ -164,18 +208,29 @@ public class DTWmodelsquat : MonoBehaviour
                     }
                     else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j]) //Diagonal
                     {
-                        averageX = sumX / (double)counterX;
-                        averageY = sumY / (double)counterY;
-                        sw.Write("x:");
-                        sw.Write(averageX);
-                        sw.Write("y:");
-                        sw.Write(averageY);
-                        AbsDiffXY = Math.Abs(averageX - averageY);
-                        Debug.Log(i + ", " + j + ": Diff X and Y " + AbsDiffXY);
-                        sumX = Live[i-1];
-                        sumY = Ref[j-1];
+                        foreach (bodyAngle.bodyAngle joint in joints)
+                            {
+                                joint.avgLive = joint.sumLive / (double) counterX;
+                                joint.avgRef = joint.sumRef / (double) counterY;
+
+                                joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
+
+                                joint.sumLive = joint.liveData[i - 1];
+                                joint.sumRef = joint.refData[j - 1];
+                            }
+                        //averageX = sumX / (double)counterX;
+                        //averageY = sumY / (double)counterY;
+                        //sw.Write("x:");
+                        //sw.Write(averageX);
+                        //sw.Write("y:");
+                        //sw.Write(averageY);
+                        //AbsDiffXY = Math.Abs(averageX - averageY);
+                        //Debug.Log(i + ", " + j + ": Diff X and Y " + AbsDiffXY);
+                        //sumX = Live[i-1];
+                        //sumY = Ref[j-1];
                         counterX = 1;
                         counterY = 1;
+                        totalLength++;
                         di = 1;
                         dj = 1;
                         i--;

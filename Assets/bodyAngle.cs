@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace bodyAngle{
@@ -31,7 +32,8 @@ namespace bodyAngle{
         [System.NonSerialized]
         public double avgRef;
 
-
+        [System.NonSerialized]
+        public double sumDiff;
 
         public float getAngle()
         {
@@ -45,5 +47,14 @@ namespace bodyAngle{
             Debug.Log(badFormMsg);
         }
 
+        public void saveData(int ndx) 
+        {
+            this.liveData[ndx] = this.getAngle();
+        }
+
+        public void checkFrame(int totalLength)
+        {
+            double averageError = this.sumDiff / (double) totalLength;
+        }
     }
 }
