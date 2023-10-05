@@ -60,7 +60,6 @@ namespace bodyAngle{
         public void saveRef(int ndx)
         {
             this.refData[ndx] = this.getAngle();
-            Debug.Log("Saving ref data");
         }
 
         public void storeReference() {
