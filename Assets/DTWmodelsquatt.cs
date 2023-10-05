@@ -10,27 +10,26 @@ using bodyAngle;
 
 public class DTWmodelsquat : MonoBehaviour
 {
-    public GameObject squatsnel;
-    public GameObject squattraag;
     public bodyAngle.bodyAngle leftKneeLive;
     public bodyAngle.bodyAngle leftKneeRef;
-    public bodyAngle.bodyAngle leftAnkleLive;
-    public bodyAngle.bodyAngle leftAnkleRef;
+    //public bodyAngle.bodyAngle leftAnkleLive;
+    //public bodyAngle.bodyAngle leftAnkleRef;  
+    //public bodyAngle.bodyAngle[] joints;
 
     int CounterLive = 0;
     int CounterRef = 0;
 
     double[] Live = new double[120];
     double[] Ref = new double[120];
-    double[] lAnkleLive = new double[120];
-    double[] lAnkleRef = new double[120];
+    //double[] lAnkleLive = new double[120];
+    //double[] lAnkleRef = new double[120];
     double sum = 0;
 
     bool written = false;
     
     Animator animator;
     int maxFrameCount = 0;
-
+    
     public void Start()
     {
         Application.targetFrameRate = 25;
@@ -53,8 +52,8 @@ public class DTWmodelsquat : MonoBehaviour
         Debug.Log("Max Frame Count: " + maxFrameCount);
         Array.Resize<double>(ref Live, maxFrameCount);
         Array.Resize<double>(ref Ref, maxFrameCount);
-        Array.Resize<double>(ref lAnkleLive, maxFrameCount);
-        Array.Resize<double>(ref lAnkleRef, maxFrameCount);
+        //Array.Resize<double>(ref lAnkleLive, maxFrameCount);
+        //Array.Resize<double>(ref lAnkleRef, maxFrameCount);
         Debug.Log("lengthe x : " + Live.Length);
     }
 
@@ -63,14 +62,14 @@ public class DTWmodelsquat : MonoBehaviour
         //Defining the angles
             float lKneeAngleLive = leftKneeLive.getAngle();
             float lKneeAngleRef = leftKneeRef.getAngle();
-            float lAnkleAngleLive = leftAnkleLive.getAngle();
-            float lAnkleAngleRef = leftAnkleRef.getAngle();
+            //float lAnkleAngleLive = leftAnkleLive.getAngle();
+            //float lAnkleAngleRef = leftAnkleRef.getAngle();
 
         //Filling the angle matrices per frame
             Live[CounterLive] = lKneeAngleLive;
             Ref[CounterRef] = lKneeAngleRef;
-            lAnkleLive[CounterLive] = lAnkleAngleLive;
-            lAnkleRef[CounterRef] = lAnkleAngleRef;
+            //lAnkleLive[CounterLive] = lAnkleAngleLive;
+            //lAnkleRef[CounterRef] = lAnkleAngleRef;
 
         //DTW script usage and filling in the DTW matrix and matching frames
         if (CounterLive == (maxFrameCount - 1))
@@ -86,15 +85,16 @@ public class DTWmodelsquat : MonoBehaviour
             int counterY = 1;
             double averageX = 1;
             double averageY = 1;
+            int di = 1;
+            int dj = 1;
             double AbsDiffXY = 1;
 
 
             string path = Directory.GetCurrentDirectory();
             using (StreamWriter sw = new StreamWriter(path + "/output.txt"))
             {
-                if (!written)
+                if (false)//(!written)
                 {
-                    Debug.Log("Writing x and y");
                     foreach (double x_val in Live)
                     {
                         sw.Write(x_val);
@@ -110,29 +110,76 @@ public class DTWmodelsquat : MonoBehaviour
                 }
                 while (i > 0 || j > 0)
                 {
-                    if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
+                    if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1]) //Left
                     {
-                        sumX = sumX + Live[i - 1];
-                        counterX++;
+                        if (dj == 1 && i != (Live.Length-1) && j != (Ref.Length-1)) //Diagonal or Down
+                        {
+                            averageX = sumX / (double)counterX;
+                            averageY = sumY / (double)counterY;
+                            sw.Write("x:");
+                            sw.Write(averageX);
+                            sw.Write("y:");
+                            sw.Write(averageY);
+                            AbsDiffXY = Math.Abs(averageX - averageY);
+                            Debug.Log(i + ", " + j + ": Diff X and Y " + AbsDiffXY);
+                            sumX = Live[i-1];
+                            sumY = Ref[j-1];
+                            counterX = 1;
+                            counterY = 1;
+                        }
+                        else
+                        {
+                            sumX += Live[i-1];
+                            counterX += 1;
+                        }
+                        di = 1;
+                        dj = 0;
                         i--;
                     }
-                    else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
+                    else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j]) //Down
                     {
-                        sumY = sumY + Ref[j - 1];
-                        counterY++;
+                        if (di == 1 && i != (Live.Length-1) && j != (Ref.Length-1)) //Diagonal or Left
+                        {
+                            averageX = sumX / (double)counterX;
+                            averageY = sumY / (double)counterY;
+                            sw.Write("x:");
+                            sw.Write(averageX);
+                            sw.Write("y:");
+                            sw.Write(averageY);
+                            AbsDiffXY = Math.Abs(averageX - averageY);
+                            Debug.Log(i + ", " + j + ": Diff X and Y " + AbsDiffXY);
+                            sumX = Live[i-1];
+                            sumY = Ref[j-1];
+                            counterX = 1;
+                            counterY = 1;
+                        }
+                        else
+                        {
+                            sumY += Ref[j-1];
+                            counterY += 1;
+                        }
+                        di = 0;
+                        dj = 1;
                         j--;
                     }
-                    else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j])
+                    else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j]) //Diagonal
                     {
                         averageX = sumX / (double)counterX;
                         averageY = sumY / (double)counterY;
+                        sw.Write("x:");
+                        sw.Write(averageX);
+                        sw.Write("y:");
+                        sw.Write(averageY);
                         AbsDiffXY = Math.Abs(averageX - averageY);
-                        i--;
-                        j--;
-                        sumX = Live[i];
-                        sumY = Ref[j];
+                        Debug.Log(i + ", " + j + ": Diff X and Y " + AbsDiffXY);
+                        sumX = Live[i-1];
+                        sumY = Ref[j-1];
                         counterX = 1;
                         counterY = 1;
+                        di = 1;
+                        dj = 1;
+                        i--;
+                        j--;
                     }
 
                     // Extract data based on the matched frames (i and j)
@@ -142,9 +189,9 @@ public class DTWmodelsquat : MonoBehaviour
                         double valueFromY = Ref[j];  // Value from array y at index j
 
                         // Do something with the extracted data (e.g., print or store it)
-                        Debug.Log("i =" + i + " : " + valueFromX + " j = " + j + " : " + valueFromY + " Difference = " + Math.Abs(valueFromX - valueFromY));
+                        //Debug.Log("i =" + i + " : " + valueFromX + " j = " + j + " : " + valueFromY + " Difference = " + Math.Abs(valueFromX - valueFromY));
                         //Debug.Log(f[1,1]);
-                        if (!written)
+                        if (false)//(!written)
                         {
                             sw.Write("i:");
                             sw.Write(i);

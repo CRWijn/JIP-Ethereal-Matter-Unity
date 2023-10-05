@@ -6,11 +6,32 @@ namespace bodyAngle{
     [System.Serializable]
     public class bodyAngle
     {
+        public string jointName;
         public Transform top;
         public Transform middle;
         public Transform bottom;
         public double errorMargin;
         public string badFormMsg;
+
+        [System.NonSerialized]
+        public double[] liveData;
+
+        [System.NonSerialized]
+        public double[] refData;
+
+        [System.NonSerialized]
+        public double sumLive;
+
+        [System.NonSerialized]
+        public double sumRef;
+
+        [System.NonSerialized]
+        public double avgLive;
+
+        [System.NonSerialized]
+        public double avgRef;
+
+
 
         public float getAngle()
         {
