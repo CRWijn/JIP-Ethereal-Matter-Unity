@@ -11,8 +11,9 @@ using bodyAngle;
 public class DTWmodelsquat : MonoBehaviour
 {
     public bool isRef;
-    public bool resetRef;
+    public bool writeRef;
     public bodyAngle.bodyAngle[] joints;
+    public int windowSize;
     
 
     int CounterLive = 0;
@@ -39,16 +40,17 @@ public class DTWmodelsquat : MonoBehaviour
                 maxFrameCount = frameCount;
             }
         }
-
-        if (isRef) {
-            foreach (bodyAngle.bodyAngle joint in joints)
+        foreach (bodyAngle.bodyAngle joint in joints)//Set array sizes
+        {
+            if (isRef) //Only if you want to record reference data
             {
                 Array.Resize<double>(ref joint.refData, maxFrameCount);
-                if (resetRef)
+                if (writeRef)
                 {
-                    joint.resetFile();
+                    joint.resetFile(); //Wipe the file
                 }
             }
+            Array.Resize<double>(ref joint.liveData, windowSize);
         }
 
         // Print the number of frames in the longest animation
@@ -68,7 +70,7 @@ public class DTWmodelsquat : MonoBehaviour
                 joint.saveData(CounterRef);
             }
 
-            if (CounterLive == (maxFrameCount - 1))
+            if (CounterLive == (windowSize - 1))
             {
                 SimpleDTW simpleDTW = new SimpleDTW(joints[0].liveData, joints[0].refData);
                 simpleDTW.computeDTW();
@@ -191,12 +193,15 @@ public class DTWmodelsquat : MonoBehaviour
             Debug.Log("DONE");
             foreach (bodyAngle.bodyAngle joint in joints)
             {
-                joint.storeReference();
+                if (writeRef)
+                {
+                    joint.storeReference();
+                }
             }
             writtenRef = true;
             CounterRef = 0;
         }
-        else {
+        else if (!writtenRef){
             CounterRef++;
         }
      }
