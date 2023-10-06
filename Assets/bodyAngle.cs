@@ -37,8 +37,14 @@ namespace bodyAngle{
 
         public float getAngle()
         {
+            Vector3 lowerVec;
+            if (middle == bottom) {
+                lowerVec = new Vector3(1, 1, 1);
+            }
+            else {
+                lowerVec = bottom.position - middle.position;
+            }
             Vector3 upperVec = top.position - middle.position;
-            Vector3 lowerVec = bottom.position - middle.position;
             return Vector3.Angle(upperVec, lowerVec);
         }
 
@@ -75,7 +81,7 @@ namespace bodyAngle{
 
         public void resetFile() {
             string path = Directory.GetCurrentDirectory();
-            using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt", true))
+            using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt"))
             {
                 sw.Write("");
             }
