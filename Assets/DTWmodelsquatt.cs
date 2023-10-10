@@ -40,9 +40,6 @@ public class DTWmodelsquat : MonoBehaviour
                 maxFrameCount = frameCount;
             }
         }
-        // TESTING READER:
-        //joints[0].readReference();
-        //Debug.Log(joints[0].refData[0]);
         foreach (bodyAngle.bodyAngle joint in joints)//Set array sizes
         {
             if (isRef) //Only if you want to record reference data
@@ -54,6 +51,7 @@ public class DTWmodelsquat : MonoBehaviour
                 }
             }
             Array.Resize<double>(ref joint.liveData, windowSize);
+            joint.readReference();
         }
 
         // Print the number of frames in the longest animation

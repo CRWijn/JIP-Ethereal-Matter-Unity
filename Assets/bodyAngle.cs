@@ -100,7 +100,6 @@ namespace bodyAngle{
                     while (true) 
                     {
                         int query = sr.Read();
-                        //Debug.Log(query);
                         if ((char) query == ' ') // End of a number
                         {
                             refDataReader.Add(current);
@@ -117,13 +116,14 @@ namespace bodyAngle{
                         }
                         else // Another digit
                         {
+                            int digit = (char) query - '0';
                             if (bfrDec == 0.1) // Tens
                             {
-                                current = (current / bfrDec) + (double) query;
+                                current = (current / bfrDec) + (double) digit;
                             }
                             else // Tenths
                             {
-                                current += (double) query / bfrDec;
+                                current += (double) digit / bfrDec;
                                 bfrDec *= 10;
                             }
                         }
