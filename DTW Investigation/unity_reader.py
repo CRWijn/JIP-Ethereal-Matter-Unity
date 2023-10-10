@@ -3,6 +3,56 @@ import dtw
 import matplotlib.pyplot as plt
 import os
 
+def plot_verif():
+    path = "DUMP_RightKnee.txt"
+    path2 = "DUMP_IANDJ.txt"
+    live = []
+    ref = []
+    with open(path, 'r') as file:
+        lines = file.readlines()
+        live_chr = lines[0].strip().split(' ')
+        ref_chr = lines[1].strip().split(' ')
+        for x in range(len(live_chr)):
+            live.append(float(live_chr[x]))
+
+        for y in range(len(ref_chr)):
+            ref.append(float(ref_chr[y]))
+            
+    x_ndx = []
+    y_ndx = []
+    with open(path2, 'r') as file:
+        lines = file.readline()
+        x_and_y_ndx_chr = lines.strip().replace('j', 'i').split('i:')
+        print(x_and_y_ndx_chr)
+        
+        for i in range(1, len(x_and_y_ndx_chr), 2):
+            try:            
+                x_ndx.append(int(x_and_y_ndx_chr[i])-1)
+            except:
+                pass
+            try:
+                y_ndx.append(int(x_and_y_ndx_chr[i+1])-1)
+            except:
+                pass
+    
+    x = np.array(live)[x_ndx]
+    y = np.array(ref)[y_ndx]
+    fig, ax = plt.subplots()
+    ax.grid()
+    ax.plot(x[::-1])
+    ax.plot(y[::-1])
+    #ax.plot(live)
+    #ax.plot(ref)
+    ax.set_ylabel("Angle ($^\circ$C)")
+    ax.set_xlabel("Time Index")
+    ax.legend(['live','ref'])
+    fig.show()
+    
+    fig2, ax = plt.subplots()
+    ax.plot(x_ndx, y_ndx)
+    plt.grid()
+    fig2.show()
+
 def plot_avg():
     path = "../averages.txt"
     with open(path, 'r') as file:
@@ -101,6 +151,7 @@ def plot_ref():
                 for datum in data_str:
                     data.append(float(datum))
             ax[j].plot(data)
+            ax[j].set_ylim([0,180])
             ax[j].set_title(paths[i+j])
         fig.show()
             
@@ -108,5 +159,6 @@ def plot_ref():
 
 #plot_comparison()
 #plot_avg()
-plot_ref()
+#plot_ref()
+plot_verif()
 

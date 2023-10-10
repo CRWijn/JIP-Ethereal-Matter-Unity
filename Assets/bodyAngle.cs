@@ -36,6 +36,9 @@ namespace bodyAngle{
         [System.NonSerialized]
         public double sumDiff;
 
+        [System.NonSerialized]
+        public List<double> avgErrors = new List<double>();
+
         public float getAngle()
         {
             Vector3 lowerVec;
@@ -59,9 +62,30 @@ namespace bodyAngle{
             this.liveData[ndx] = this.getAngle();
         }
 
-        public void checkFrame(int totalLength)
+        public void checkFrame()
         {
-            double averageError = this.sumDiff / (double) totalLength;
+            this.avgErrors.Sort(); // Sort the list from least to greatest
+            int midNdx = this.avgErrors.Count / 2;
+            int lowerNdx = this.avgErrors.Count / 4;
+            int upperNdx = 3 * this.avgErrors.Count / 4;
+            double iqr = this.avgErrors[upperNdx] - this.avgErrors[lowerNdx];
+            double eps = this.avgErrors[midNdx] + (1.5 * iqr); // Outliers are larger than eps (maybe should change this to single sided iqr)
+            double sumError = 0;
+            int totalCounted = 0;
+            foreach (double error in this.avgErrors)
+            {
+                if (error < eps)
+                {
+                    sumError += error;
+                    totalCounted++;
+                }
+            }
+            double avgError = sumError / (double) totalCounted;
+            Debug.Log("Avg Error: " + avgError);
+            if (avgError > this.errorMargin)
+            {
+                Debug.Log(this.badFormMsg);
+            }
         }
 
         public void saveRef(int ndx)
@@ -140,6 +164,29 @@ namespace bodyAngle{
             {
                 Debug.Log(e);
                 throw new InvalidOperationException("Must save data first!");
+            }
+        }
+
+        public void dump()
+        {
+            string path = Directory.GetCurrentDirectory();
+            using (StreamWriter sw = new StreamWriter(path + "/DTW Investigation/DUMP_" + this.jointName + ".txt"))
+            {
+                for (int i = 0; i < this.liveData.Length; i++) {
+                    sw.Write(this.liveData[i]);
+                    if (i < this.liveData.Length - 1)
+                    {
+                        sw.Write(' ');
+                    }
+                }
+                sw.Write('\n');
+                for (int i = 0; i < this.refData.Length; i++) {
+                    sw.Write(this.refData[i]);
+                    if (i < this.refData.Length - 1)
+                    {
+                        sw.Write(' ');
+                    }
+                }
             }
         }
     }

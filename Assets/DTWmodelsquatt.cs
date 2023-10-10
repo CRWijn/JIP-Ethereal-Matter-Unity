@@ -68,7 +68,7 @@ public class DTWmodelsquat : MonoBehaviour
         else {
             foreach (bodyAngle.bodyAngle joint in joints)
             {
-                joint.saveData(CounterRef);
+                joint.saveData(CounterLive);
             }
 
             if (CounterLive == (windowSize - 1))
@@ -84,10 +84,12 @@ public class DTWmodelsquat : MonoBehaviour
                     joint.sumLive = joint.liveData[i - 1];
                     joint.sumRef = joint.refData[j - 1];
                     joint.sumDiff = 0;
+                    joint.avgErrors.Clear();
                 }
                 int counterX = 1;
                 int counterY = 1;
                 int totalLength = 0;
+                resetNdx();
                 int di = 1;
                 int dj = 1;
 
@@ -103,10 +105,12 @@ public class DTWmodelsquat : MonoBehaviour
                                 joint.avgRef = joint.sumRef / (double) counterY;
 
                                 joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
+                                joint.avgErrors.Add(Math.Abs(joint.avgLive - joint.avgRef));
 
                                 joint.sumLive = joint.liveData[i - 1];
                                 joint.sumRef = joint.refData[j - 1];
                             }
+                            writeNdx(i, j);
                             counterX = 1;
                             counterY = 1;
                             totalLength++;
@@ -133,10 +137,12 @@ public class DTWmodelsquat : MonoBehaviour
                                 joint.avgRef = joint.sumRef / (double) counterY;
 
                                 joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
+                                joint.avgErrors.Add(Math.Abs(joint.avgLive - joint.avgRef));
 
                                 joint.sumLive = joint.liveData[i - 1];
                                 joint.sumRef = joint.refData[j - 1];
                             }
+                            writeNdx(i, j);
                             counterX = 1;
                             counterY = 1;
                             totalLength++;
@@ -161,10 +167,12 @@ public class DTWmodelsquat : MonoBehaviour
                             joint.avgRef = joint.sumRef / (double) counterY;
 
                             joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
+                            joint.avgErrors.Add(Math.Abs(joint.avgLive - joint.avgRef));
 
                             joint.sumLive = joint.liveData[i - 1];
                             joint.sumRef = joint.refData[j - 1];
                         }
+                        writeNdx(i, j);
                         counterX = 1;
                         counterY = 1;
                         totalLength++;
@@ -174,7 +182,11 @@ public class DTWmodelsquat : MonoBehaviour
                         j--;
                     }
                 }
-                //CHECK FRAME FOR EACH BONE
+                Debug.Log("Dumping");
+                joints[0].dump();
+                joints[0].checkFrame();
+                double otherAvg = joints[0].sumDiff / (double) totalLength;
+                Debug.Log("Other AVG: " + otherAvg);
                 CounterLive = 0;
             }
             else
@@ -206,5 +218,21 @@ public class DTWmodelsquat : MonoBehaviour
         else if (!writtenRef){
             CounterRef++;
         }
+     }
+
+     public void resetNdx() {
+         string path = Directory.GetCurrentDirectory() + "/DTW Investigation/DUMP_IANDJ.txt";
+         using (StreamWriter sw = new StreamWriter(path))
+         {
+             sw.Write("");
+         }
+     }
+
+     public void writeNdx(int i, int j) {
+         string path = Directory.GetCurrentDirectory() + "/DTW Investigation/DUMP_IANDJ.txt";
+         using (StreamWriter sw = new StreamWriter(path, true))
+         {
+             sw.Write("i:"+i+"j:"+j);
+         }
      }
 }
