@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -84,6 +85,61 @@ namespace bodyAngle{
             using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt"))
             {
                 sw.Write("");
+            }
+        }
+
+        public void readReference() {
+            string path = Directory.GetCurrentDirectory();
+            try 
+            {
+                using (StreamReader sr = new StreamReader(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt"))
+                {
+                    List<double> refDataReader = new List<double>();
+                    double current = 0;
+                    double bfrDec = 0.1;
+                    while (true) 
+                    {
+                        int query = sr.Read();
+                        //Debug.Log(query);
+                        if ((char) query == ' ') // End of a number
+                        {
+                            refDataReader.Add(current);
+                            current = 0;
+                            bfrDec = 0.1;
+                        }
+                        else if (query == -1) // End of the file
+                        {
+                            break;
+                        }
+                        else if ((char) query == (char) '.' || (char) query ==  ',') // Passing the decimal -> , and . for support for dutch and english unity
+                        {
+                            bfrDec = 10;
+                        }
+                        else // Another digit
+                        {
+                            if (bfrDec == 0.1) // Tens
+                            {
+                                current = (current / bfrDec) + (double) query;
+                            }
+                            else // Tenths
+                            {
+                                current += (double) query / bfrDec;
+                                bfrDec *= 10;
+                            }
+                        }
+                    }
+                    int refDataLen = refDataReader.Count;
+                    Array.Resize<double>(ref this.refData, refDataLen);
+                    for (int i = 0; i < refDataLen; i++)
+                    {
+                        this.refData[i] = refDataReader[i];
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.Log(e);
+                throw new InvalidOperationException("Must save data first!");
             }
         }
     }

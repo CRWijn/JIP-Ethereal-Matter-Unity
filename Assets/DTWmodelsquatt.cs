@@ -40,6 +40,9 @@ public class DTWmodelsquat : MonoBehaviour
                 maxFrameCount = frameCount;
             }
         }
+        // TESTING READER:
+        //joints[0].readReference();
+        //Debug.Log(joints[0].refData[0]);
         foreach (bodyAngle.bodyAngle joint in joints)//Set array sizes
         {
             if (isRef) //Only if you want to record reference data
@@ -173,6 +176,7 @@ public class DTWmodelsquat : MonoBehaviour
                         j--;
                     }
                 }
+                //CHECK FRAME FOR EACH BONE
                 CounterLive = 0;
             }
             else
