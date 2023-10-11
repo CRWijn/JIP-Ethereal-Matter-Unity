@@ -73,120 +73,17 @@ public class DTWmodelsquat : MonoBehaviour
 
             if (CounterLive == (windowSize - 1))
             {
+                // DTW
                 SimpleDTW simpleDTW = new SimpleDTW(joints[0].liveData, joints[0].refData);
                 simpleDTW.computeDTW();
-                double[,] f = simpleDTW.getFMatrix();
-                int i = joints[0].liveData.Length;
-                int j = joints[0].refData.Length;
 
-                foreach (bodyAngle.bodyAngle joint in joints)
-                {
-                    joint.sumLive = joint.liveData[i - 1];
-                    joint.sumRef = joint.refData[j - 1];
-                    joint.sumDiff = 0;
-                    joint.avgErrors.Clear();
-                }
-                int counterX = 1;
-                int counterY = 1;
-                int totalLength = 0;
-                resetNdx();
-                int di = 1;
-                int dj = 1;
+                // Path through DTW
+                int totalLength = shortestPath(ref joints, simpleDTW);
 
-                while (i > 0 || j > 0)
-                {
-                    Debug.Log(i + ", " + j);
-                    if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1] && di == 1) //Down
-                    {
-                        if (dj == 1 && i != (joints[0].liveData.Length-1) && j != (joints[0].refData.Length-1)) //Diagonal or Left
-                        {
-                            foreach (bodyAngle.bodyAngle joint in joints)
-                            {
-                                joint.avgLive = joint.sumLive / (double) counterX;
-                                joint.avgRef = joint.sumRef / (double) counterY;
-
-                                joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
-                                joint.avgErrors.Add(Math.Abs(joint.avgLive - joint.avgRef));
-
-                                joint.sumLive = joint.liveData[i - 1];
-                                joint.sumRef = joint.refData[j - 1];
-                            }
-                            writeNdx(i, j);
-                            counterX = 1;
-                            counterY = 1;
-                            totalLength++;
-                        }
-                        else
-                        {
-                            foreach (bodyAngle.bodyAngle joint in joints)
-                            {
-                                joint.sumLive += joint.liveData[i - 1];
-                            }
-                            counterX++;
-                        }
-                        di = 1;
-                        dj = 0;
-                        i--;
-                    }
-                    else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j] && dj == 1) //Left
-                    {
-                        if (di == 1 && i != (joints[0].liveData.Length-1) && j != (joints[0].refData.Length-1)) //Diagonal or Down
-                        {
-                            foreach (bodyAngle.bodyAngle joint in joints)
-                            {
-                                joint.avgLive = joint.sumLive / (double) counterX;
-                                joint.avgRef = joint.sumRef / (double) counterY;
-
-                                joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
-                                joint.avgErrors.Add(Math.Abs(joint.avgLive - joint.avgRef));
-
-                                joint.sumLive = joint.liveData[i - 1];
-                                joint.sumRef = joint.refData[j - 1];
-                            }
-                            writeNdx(i, j);
-                            counterX = 1;
-                            counterY = 1;
-                            totalLength++;
-                        }
-                        else
-                        {
-                            foreach (bodyAngle.bodyAngle joint in joints)
-                            {
-                                joint.sumRef += joint.refData[j - 1];
-                            }   
-                            counterY++;
-                        }
-                        di = 0;
-                        dj = 1;
-                        j--;
-                    }
-                    else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j]) //Diagonal
-                    {
-                        foreach (bodyAngle.bodyAngle joint in joints)
-                        {
-                            joint.avgLive = joint.sumLive / (double) counterX;
-                            joint.avgRef = joint.sumRef / (double) counterY;
-
-                            joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
-                            joint.avgErrors.Add(Math.Abs(joint.avgLive - joint.avgRef));
-
-                            joint.sumLive = joint.liveData[i - 1];
-                            joint.sumRef = joint.refData[j - 1];
-                        }
-                        writeNdx(i, j);
-                        counterX = 1;
-                        counterY = 1;
-                        totalLength++;
-                        di = 1;
-                        dj = 1;
-                        i--;
-                        j--;
-                    }
-                }
+                // Printing stuff
                 Debug.Log("Dumping");
                 joints[0].dump();
                 joints[0].checkFrame();
-                saveFMatrix(f);
                 double otherAvg = joints[0].sumDiff / (double) totalLength;
                 Debug.Log("Other AVG: " + otherAvg);
                 CounterLive = 0;
@@ -256,5 +153,137 @@ public class DTWmodelsquat : MonoBehaviour
                  sw.Write("\n");
              }
          }
+     }
+
+     public int shortestPath(ref bodyAngle.bodyAngle[] joints, SimpleDTW dtw)
+     {
+
+        // Initialisation
+        //*------------------------------------------
+        int i = 1;
+        int j = 1;
+        double[,] f = dtw.getFMatrix();
+        foreach (bodyAngle.bodyAngle joint in joints)
+        {
+            joint.sumLive = joint.liveData[i - 1];
+            joint.sumRef = joint.refData[j - 1];
+            joint.sumDiff = 0;
+            joint.avgErrors.Clear();
+        }
+        int counterX = 1;
+        int counterY = 1;
+        int totalLength = 0;
+        resetNdx();
+        int di = 1;
+        int dj = 1;
+        //*------------------------------------------
+        // Shortest Path Method
+        //*------------------------------------------
+        while (i < f.GetLength(0) - 1 && j < f.GetLength(1) - 1)
+        {
+            Debug.Log("Up: " + f[i + 1, j] + ", Right: " + f[i, j + 1] + ", Diag: " + f[i + 1, j + 1] + "(" + di + ", " + dj + ")");
+            if (di == 1 && dj == 0) // Came from down
+            {
+                if (f[i + 1, j] < f[i + 1, j + 1]) // Up < Diag
+                {
+                    Debug.Log("Moving Up From Down");
+                    foreach (bodyAngle.bodyAngle joint in joints)
+                    {
+                        joint.sumLive += joint.liveData[i - 1];
+                    }
+                    counterX++;
+                }
+                else // Diag <= Up
+                {
+                    Debug.Log("Moving Diagonal From Down");
+                    averagePath(ref joints, i, j, counterX, counterY); // Calculate average
+                    writeNdx(i, j); // Write the indices to a file
+                    // Reset counters
+                    counterX = 1;
+                    counterY = 1;
+                    totalLength++;
+                    j++;
+                    dj = 1;
+                }
+                i++;
+            }
+            else if (di == 0 && dj == 1) //Came from left
+            {
+                if (f[i, j + 1] < f[i + 1, j + 1]) // Right < Diag
+                {
+                    Debug.Log("Moving Right From Left");
+                    foreach (bodyAngle.bodyAngle joint in joints)
+                    {
+                        joint.sumRef += joint.refData[j - 1];
+                    }   
+                    counterY++;
+                }
+                else
+                {
+                    Debug.Log("Moving Diagonal From Left");
+                    averagePath(ref joints, i, j, counterX, counterY); // Calculate average
+                    writeNdx(i, j); // Write the indices to a file
+                    // Reset counters
+                    counterX = 1;
+                    counterY = 1;
+                    totalLength++;
+                    i++;
+                    di = 1;
+                }
+                j++;
+            }
+            else // Came from diagonal
+            {
+                averagePath(ref joints, i, j, counterX, counterY); // Calculate average
+                writeNdx(i, j); // Write the indices to a file
+                // Reset counters
+                counterX = 1;
+                counterY = 1;
+                totalLength++;
+                if (f[i + 1, j + 1] <= f[i + 1, j] && f[i + 1, j + 1] <= f[i, j + 1]) // Diag is smallest
+                {
+                    Debug.Log("Moving Diagonal From Diagonal");
+                    i++;
+                    j++;
+                    di = 1;
+                    dj = 1;
+                }
+                else if (f[i + 1, j] <= f[i, j + 1]) // Up is smallest
+                {
+                    Debug.Log("Moving Up From Diagonal");
+                    i++;
+                    di = 1;
+                    dj = 0;
+                }
+                else // Right is smallest
+                {
+                    Debug.Log("Moving Right From Diagonal");
+                    j++;
+                    di = 0;
+                    dj = 1;
+                }
+            }
+        }
+        // Need to write one more time for the last index
+        averagePath(ref joints, i, j, counterX, counterY); // Calculate average
+        writeNdx(i, j); // Write the indices to a file
+        //*------------------------------------------
+        saveFMatrix(f);
+        return totalLength;
+     }
+
+     public void averagePath(ref bodyAngle.bodyAngle[] joints, int i, int j, int counterX, int counterY)
+     {
+         foreach (bodyAngle.bodyAngle joint in joints)
+        {
+            joint.avgLive = joint.sumLive / (double) counterX;
+            joint.avgRef = joint.sumRef / (double) counterY;
+
+            joint.sumDiff += Math.Abs(joint.avgLive - joint.avgRef);
+            joint.avgErrors.Add(Math.Abs(joint.avgLive - joint.avgRef));
+
+            joint.sumLive = joint.liveData[i - 1];
+            joint.sumRef = joint.refData[j - 1];
+        }
      }
 }

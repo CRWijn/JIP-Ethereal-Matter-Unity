@@ -6,7 +6,7 @@ using System.Collections;
 
 namespace DTW
 {
-    class SimpleDTW
+    public class SimpleDTW
     {
         double[] x;
         double[] y;

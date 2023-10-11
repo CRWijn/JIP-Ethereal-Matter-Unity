@@ -3,6 +3,32 @@ import dtw
 import matplotlib.pyplot as plt
 import os
 
+def show_matrix():
+    path = "FMatrix.txt"
+    
+    with open(path, 'r') as file:
+        lines = file.readlines()
+        rows = len(lines)
+        cols = len(lines[0].strip().split(' '))
+        dims = (rows, cols)
+        mat = np.zeros(dims)
+        print(dims)
+        for row in range(dims[0]):
+            str_row = lines[row].strip().split(' ')
+            for col in range(dims[1]):
+                mat[row, col] = float(str_row[col])
+        #new_mat = np.flipud(mat)
+        new_mat = mat
+        np.set_printoptions(threshold=float('inf'))
+        fig, ax = plt.subplots()
+        ax.matshow(new_mat, cmap=plt.cm.Blues)
+        for i in range(dims[1]):
+            for j in range(dims[0]):
+                c = round(new_mat[j, i])
+                ax.text(i, j, str(c), va='center', ha='center', fontsize = 10)
+        fig.show()
+    
+
 def plot_verif():
     path = "DUMP_RightKnee.txt"
     path2 = "DUMP_IANDJ.txt"
@@ -23,7 +49,6 @@ def plot_verif():
     with open(path2, 'r') as file:
         lines = file.readline()
         x_and_y_ndx_chr = lines.strip().replace('j', 'i').split('i:')
-        print(x_and_y_ndx_chr)
         
         for i in range(1, len(x_and_y_ndx_chr), 2):
             try:            
@@ -34,6 +59,8 @@ def plot_verif():
                 y_ndx.append(int(x_and_y_ndx_chr[i+1])-1)
             except:
                 pass
+        #x_ndx = list(dict.fromkeys(x_ndx))
+        #y_ndx = list(dict.fromkeys(y_ndx))
     
     x = np.array(live)[x_ndx]
     y = np.array(ref)[y_ndx]
@@ -161,4 +188,5 @@ def plot_ref():
 #plot_avg()
 #plot_ref()
 plot_verif()
+show_matrix()
 
