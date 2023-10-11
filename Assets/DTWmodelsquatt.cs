@@ -74,7 +74,8 @@ public class DTWmodelsquat : MonoBehaviour
             if (CounterLive == (windowSize - 1))
             {
                 // DTW
-                SimpleDTW simpleDTW = new SimpleDTW(joints[0].liveData, joints[0].refData);
+                //SimpleDTW simpleDTW = new SimpleDTW(joints[0].liveData, joints[0].refData);
+                OEDTW simpleDTW = new OEDTW(joints[0].liveData, joints[0].refData);
                 simpleDTW.computeDTW();
 
                 // Path through DTW
@@ -153,6 +154,132 @@ public class DTWmodelsquat : MonoBehaviour
                  sw.Write("\n");
              }
          }
+     }
+
+     public int shortestPath(ref bodyAngle.bodyAngle[] joints, OEDTW dtw)
+     {
+
+        // Initialisation
+        //*------------------------------------------
+        int i = 1;
+        int j = 1;
+        double startPoint = double.PositiveInfinity;
+        double[,] f = dtw.getFMatrix();
+        for (int k = 1; k < f.GetLength(1); k++) // Find start point (smallest in j)
+        {
+            if (f[i, k] < startPoint)
+            {
+                startPoint = f[i, k];
+                j = k;
+            }
+        }
+        foreach (bodyAngle.bodyAngle joint in joints)
+        {
+            joint.sumLive = joint.liveData[i - 1];
+            joint.sumRef = joint.refData[j - 1];
+            joint.sumDiff = 0;
+            joint.avgErrors.Clear();
+        }
+        int counterX = 1;
+        int counterY = 1;
+        int totalLength = 0;
+        resetNdx();
+        int di = 1;
+        int dj = 1;
+        //*------------------------------------------
+        // Shortest Path Method
+        //*------------------------------------------
+        while (i < f.GetLength(0) - 1 && j < f.GetLength(1) - 1)
+        {
+            Debug.Log("Up: " + f[i + 1, j] + ", Right: " + f[i, j + 1] + ", Diag: " + f[i + 1, j + 1] + "(" + di + ", " + dj + ")");
+            if (di == 1 && dj == 0) // Came from down
+            {
+                if (f[i + 1, j] < f[i + 1, j + 1]) // Up < Diag
+                {
+                    Debug.Log("Moving Up From Down");
+                    foreach (bodyAngle.bodyAngle joint in joints)
+                    {
+                        joint.sumLive += joint.liveData[i - 1];
+                    }
+                    counterX++;
+                }
+                else // Diag <= Up
+                {
+                    Debug.Log("Moving Diagonal From Down");
+                    averagePath(ref joints, i, j, counterX, counterY); // Calculate average
+                    writeNdx(i, j); // Write the indices to a file
+                    // Reset counters
+                    counterX = 1;
+                    counterY = 1;
+                    totalLength++;
+                    j++;
+                    dj = 1;
+                }
+                i++;
+            }
+            else if (di == 0 && dj == 1) //Came from left
+            {
+                if (f[i, j + 1] < f[i + 1, j + 1]) // Right < Diag
+                {
+                    Debug.Log("Moving Right From Left");
+                    foreach (bodyAngle.bodyAngle joint in joints)
+                    {
+                        joint.sumRef += joint.refData[j - 1];
+                    }   
+                    counterY++;
+                }
+                else
+                {
+                    Debug.Log("Moving Diagonal From Left");
+                    averagePath(ref joints, i, j, counterX, counterY); // Calculate average
+                    writeNdx(i, j); // Write the indices to a file
+                    // Reset counters
+                    counterX = 1;
+                    counterY = 1;
+                    totalLength++;
+                    i++;
+                    di = 1;
+                }
+                j++;
+            }
+            else // Came from diagonal
+            {
+                averagePath(ref joints, i, j, counterX, counterY); // Calculate average
+                writeNdx(i, j); // Write the indices to a file
+                // Reset counters
+                counterX = 1;
+                counterY = 1;
+                totalLength++;
+                if (f[i + 1, j + 1] <= f[i + 1, j] && f[i + 1, j + 1] <= f[i, j + 1]) // Diag is smallest
+                {
+                    Debug.Log("Moving Diagonal From Diagonal");
+                    i++;
+                    j++;
+                    di = 1;
+                    dj = 1;
+                }
+                else if (f[i + 1, j] <= f[i, j + 1]) // Up is smallest
+                {
+                    Debug.Log("Moving Up From Diagonal");
+                    i++;
+                    di = 1;
+                    dj = 0;
+                }
+                else // Right is smallest
+                {
+                    Debug.Log("Moving Right From Diagonal");
+                    j++;
+                    di = 0;
+                    dj = 1;
+                }
+            }
+        }
+        // Need to write one more time for the last index
+        averagePath(ref joints, i, j, counterX, counterY); // Calculate average
+        writeNdx(i, j); // Write the indices to a file
+        //*------------------------------------------
+        saveFMatrix(f);
+        return totalLength;
      }
 
      public int shortestPath(ref bodyAngle.bodyAngle[] joints, SimpleDTW dtw)

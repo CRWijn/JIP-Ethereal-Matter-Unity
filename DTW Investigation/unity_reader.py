@@ -66,8 +66,8 @@ def plot_verif():
     y = np.array(ref)[y_ndx]
     fig, ax = plt.subplots()
     ax.grid()
-    ax.plot(x[::-1])
-    ax.plot(y[::-1])
+    ax.plot(x)
+    ax.plot(y)
     #ax.plot(live)
     #ax.plot(ref)
     ax.set_ylabel("Angle ($^\circ$C)")
