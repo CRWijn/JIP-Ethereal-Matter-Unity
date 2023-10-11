@@ -95,9 +95,10 @@ public class DTWmodelsquat : MonoBehaviour
 
                 while (i > 0 || j > 0)
                 {
-                    if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1]) //Left
+                    Debug.Log(i + ", " + j);
+                    if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1] && di == 1) //Down
                     {
-                        if (dj == 1 && i != (joints[0].liveData.Length-1) && j != (joints[0].refData.Length-1)) //Diagonal or Down
+                        if (dj == 1 && i != (joints[0].liveData.Length-1) && j != (joints[0].refData.Length-1)) //Diagonal or Left
                         {
                             foreach (bodyAngle.bodyAngle joint in joints)
                             {
@@ -119,7 +120,7 @@ public class DTWmodelsquat : MonoBehaviour
                         {
                             foreach (bodyAngle.bodyAngle joint in joints)
                             {
-                                joint.sumLive = joint.liveData[i - 1];
+                                joint.sumLive += joint.liveData[i - 1];
                             }
                             counterX++;
                         }
@@ -127,9 +128,9 @@ public class DTWmodelsquat : MonoBehaviour
                         dj = 0;
                         i--;
                     }
-                    else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j]) //Down
+                    else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j] && dj == 1) //Left
                     {
-                        if (di == 1 && i != (joints[0].liveData.Length-1) && j != (joints[0].refData.Length-1)) //Diagonal or Left
+                        if (di == 1 && i != (joints[0].liveData.Length-1) && j != (joints[0].refData.Length-1)) //Diagonal or Down
                         {
                             foreach (bodyAngle.bodyAngle joint in joints)
                             {
@@ -151,7 +152,7 @@ public class DTWmodelsquat : MonoBehaviour
                         {
                             foreach (bodyAngle.bodyAngle joint in joints)
                             {
-                                joint.sumRef = joint.refData[j - 1];
+                                joint.sumRef += joint.refData[j - 1];
                             }   
                             counterY++;
                         }
@@ -185,6 +186,7 @@ public class DTWmodelsquat : MonoBehaviour
                 Debug.Log("Dumping");
                 joints[0].dump();
                 joints[0].checkFrame();
+                saveFMatrix(f);
                 double otherAvg = joints[0].sumDiff / (double) totalLength;
                 Debug.Log("Other AVG: " + otherAvg);
                 CounterLive = 0;
@@ -233,6 +235,26 @@ public class DTWmodelsquat : MonoBehaviour
          using (StreamWriter sw = new StreamWriter(path, true))
          {
              sw.Write("i:"+i+"j:"+j);
+         }
+     }
+
+     public void saveFMatrix(double[,] f)
+     {
+         string path = Directory.GetCurrentDirectory() + "/DTW Investigation/FMatrix.txt";
+         using (StreamWriter sw = new StreamWriter(path))
+         {
+             for (int i = 1; i < f.GetLength(0); i++)
+             {
+                 for (int j = 1; j < f.GetLength(1); j++)
+                 {
+                     sw.Write(f[i,j]);
+                     if (j < f.GetLength(1) - 1)
+                     {
+                         sw.Write(" ");
+                     }
+                 }
+                 sw.Write("\n");
+             }
          }
      }
 }
