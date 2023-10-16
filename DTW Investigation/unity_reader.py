@@ -68,8 +68,6 @@ def plot_verif():
     ax.grid()
     ax.plot(x)
     ax.plot(y)
-    #ax.plot(live)
-    #ax.plot(ref)
     ax.set_ylabel("Angle ($^\circ$C)")
     ax.set_xlabel("Time Index")
     ax.legend(['live','ref'])
@@ -79,6 +77,14 @@ def plot_verif():
     ax.plot(x_ndx, y_ndx)
     plt.grid()
     fig2.show()
+
+    fig3, axs = plt.subplots(2, 1)
+    axs[0].plot(live)
+    axs[0].set_title("Live")
+    axs[1].plot(ref)
+    axs[1].set_title("Ref")
+    fig3.show()
+    
 
 def plot_avg():
     path = "../averages.txt"

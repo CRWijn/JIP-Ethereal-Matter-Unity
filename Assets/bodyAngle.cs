@@ -81,11 +81,11 @@ namespace bodyAngle{
                 }
             }
             double avgError = sumError / (double) totalCounted;
-            Debug.Log("Avg Error: " + avgError);
-            if (avgError > this.errorMargin)
-            {
-                Debug.Log(this.badFormMsg);
-            }
+            //Debug.Log("Avg Error: " + avgError);
+            //if (avgError > this.errorMargin)
+            //{
+            //    Debug.Log(this.badFormMsg);
+            //}
         }
 
         public void saveRef(int ndx)

@@ -56,6 +56,7 @@ public class DTWmodelsquat : MonoBehaviour
 
         // Print the number of frames in the longest animation
         Debug.Log("Max Frame Count: " + maxFrameCount);
+        Application.targetFrameRate = 60;
     }
 
     public void Update()
@@ -82,11 +83,11 @@ public class DTWmodelsquat : MonoBehaviour
                 int totalLength = shortestPath(ref joints, simpleDTW);
 
                 // Printing stuff
-                Debug.Log("Dumping");
-                joints[0].dump();
-                joints[0].checkFrame();
-                double otherAvg = joints[0].sumDiff / (double) totalLength;
-                Debug.Log("Other AVG: " + otherAvg);
+                //Debug.Log("Dumping");
+                //joints[0].dump();
+                //joints[0].checkFrame();
+                //double otherAvg = joints[0].sumDiff / (double) totalLength;
+                //Debug.Log("Other AVG: " + otherAvg);
                 CounterLive = 0;
             }
             else
@@ -156,23 +157,102 @@ public class DTWmodelsquat : MonoBehaviour
          }
      }
 
+     public double pathWeight (ref double[,] f, int j) {
+        // Initialisation
+        //*------------------------------------------        
+        int i = 1;
+        double pathSum = 0;
+        resetNdx();
+        int di = 1;
+        int dj = 1;
+        //*------------------------------------------
+        // Shortest Path Method
+        //*------------------------------------------
+        while (i < f.GetLength(0) - 1)
+        {
+            if (j == f.GetLength(1) - 1)
+            {
+                i++;
+                di = 1;
+                dj = 0;
+                pathSum += f[i, j];
+            }
+            else if (di == 1 && dj == 0) // Came from down
+            {
+                if (f[i + 1, j] >= f[i + 1, j + 1]) // Diag <= Up
+                {
+                    j++;
+                    dj = 1;
+                }
+                i++;
+                pathSum += f[i, j];
+            }
+            else if (di == 0 && dj == 1) //Came from left
+            {
+                if (f[i, j + 1] >= f[i + 1, j + 1]) // Right >= Diag
+                {
+                    i++;
+                    di = 1;
+                }
+                j++;
+                pathSum += f[i, j];
+            }
+            else // Came from diagonal
+            {
+                if (f[i + 1, j + 1] <= f[i + 1, j] && f[i + 1, j + 1] <= f[i, j + 1]) // Diag is smallest
+                {
+                    i++;
+                    j++;
+                    di = 1;
+                    dj = 1;
+                }
+                else if (f[i + 1, j] <= f[i, j + 1]) // Up is smallest
+                {
+                    i++;
+                    di = 1;
+                    dj = 0;
+                }
+                else // Right is smallest
+                {
+                    j++;
+                    di = 0;
+                    dj = 1;
+                }
+                pathSum += f[i, j];
+            }
+        }
+        return pathSum;
+     }
+
+     public int smallestIndex(ref double[] ndxLst)
+     {
+         int ndx = 0;
+         double startPoint = double.PositiveInfinity;
+         for (int i = 0; i < ndxLst.Length; i++)
+         {
+             if (ndxLst[i] < startPoint)
+            {
+                startPoint = ndxLst[i];
+                ndx = i;
+            }
+         }
+         return ndx;
+     }
+
      public int shortestPath(ref bodyAngle.bodyAngle[] joints, OEDTW dtw)
      {
-
         // Initialisation
         //*------------------------------------------
         int i = 1;
         int j = 1;
-        double startPoint = double.PositiveInfinity;
         double[,] f = dtw.getFMatrix();
+        double[] ndxLst = new double[f.GetLength(1)-1];
         for (int k = 1; k < f.GetLength(1); k++) // Find start point (smallest in j)
         {
-            if (f[i, k] < startPoint)
-            {
-                startPoint = f[i, k];
-                j = k;
-            }
+            ndxLst[k-1] = pathWeight(ref f, k-1);
         }
+        j = smallestIndex(ref ndxLst) + 1;
+        double squatPercentStart = 100 * (double) j / ((double) f.GetLength(1)-1);
         foreach (bodyAngle.bodyAngle joint in joints)
         {
             joint.sumLive = joint.liveData[i - 1];
@@ -191,12 +271,10 @@ public class DTWmodelsquat : MonoBehaviour
         //*------------------------------------------
         while (i < f.GetLength(0) - 1 && j < f.GetLength(1) - 1)
         {
-            Debug.Log("Up: " + f[i + 1, j] + ", Right: " + f[i, j + 1] + ", Diag: " + f[i + 1, j + 1] + "(" + di + ", " + dj + ")");
             if (di == 1 && dj == 0) // Came from down
             {
                 if (f[i + 1, j] < f[i + 1, j + 1]) // Up < Diag
                 {
-                    Debug.Log("Moving Up From Down");
                     foreach (bodyAngle.bodyAngle joint in joints)
                     {
                         joint.sumLive += joint.liveData[i - 1];
@@ -205,7 +283,6 @@ public class DTWmodelsquat : MonoBehaviour
                 }
                 else // Diag <= Up
                 {
-                    Debug.Log("Moving Diagonal From Down");
                     averagePath(ref joints, i, j, counterX, counterY); // Calculate average
                     writeNdx(i, j); // Write the indices to a file
                     // Reset counters
@@ -221,7 +298,6 @@ public class DTWmodelsquat : MonoBehaviour
             {
                 if (f[i, j + 1] < f[i + 1, j + 1]) // Right < Diag
                 {
-                    Debug.Log("Moving Right From Left");
                     foreach (bodyAngle.bodyAngle joint in joints)
                     {
                         joint.sumRef += joint.refData[j - 1];
@@ -230,7 +306,6 @@ public class DTWmodelsquat : MonoBehaviour
                 }
                 else
                 {
-                    Debug.Log("Moving Diagonal From Left");
                     averagePath(ref joints, i, j, counterX, counterY); // Calculate average
                     writeNdx(i, j); // Write the indices to a file
                     // Reset counters
@@ -252,7 +327,6 @@ public class DTWmodelsquat : MonoBehaviour
                 totalLength++;
                 if (f[i + 1, j + 1] <= f[i + 1, j] && f[i + 1, j + 1] <= f[i, j + 1]) // Diag is smallest
                 {
-                    Debug.Log("Moving Diagonal From Diagonal");
                     i++;
                     j++;
                     di = 1;
@@ -260,14 +334,12 @@ public class DTWmodelsquat : MonoBehaviour
                 }
                 else if (f[i + 1, j] <= f[i, j + 1]) // Up is smallest
                 {
-                    Debug.Log("Moving Up From Diagonal");
                     i++;
                     di = 1;
                     dj = 0;
                 }
                 else // Right is smallest
                 {
-                    Debug.Log("Moving Right From Diagonal");
                     j++;
                     di = 0;
                     dj = 1;
@@ -279,6 +351,8 @@ public class DTWmodelsquat : MonoBehaviour
         writeNdx(i, j); // Write the indices to a file
         //*------------------------------------------
         saveFMatrix(f);
+        double squatPercentEnd = 100 * (double) j / ((double) f.GetLength(1)-1);
+        Debug.Log(squatPercentStart + "% - " + squatPercentEnd + "% in the squat");
         return totalLength;
      }
 
@@ -307,13 +381,11 @@ public class DTWmodelsquat : MonoBehaviour
         // Shortest Path Method
         //*------------------------------------------
         while (i < f.GetLength(0) - 1 && j < f.GetLength(1) - 1)
-        {
-            Debug.Log("Up: " + f[i + 1, j] + ", Right: " + f[i, j + 1] + ", Diag: " + f[i + 1, j + 1] + "(" + di + ", " + dj + ")");
+        {            
             if (di == 1 && dj == 0) // Came from down
             {
                 if (f[i + 1, j] < f[i + 1, j + 1]) // Up < Diag
                 {
-                    Debug.Log("Moving Up From Down");
                     foreach (bodyAngle.bodyAngle joint in joints)
                     {
                         joint.sumLive += joint.liveData[i - 1];
@@ -321,8 +393,7 @@ public class DTWmodelsquat : MonoBehaviour
                     counterX++;
                 }
                 else // Diag <= Up
-                {
-                    Debug.Log("Moving Diagonal From Down");
+                {                    
                     averagePath(ref joints, i, j, counterX, counterY); // Calculate average
                     writeNdx(i, j); // Write the indices to a file
                     // Reset counters
@@ -337,8 +408,7 @@ public class DTWmodelsquat : MonoBehaviour
             else if (di == 0 && dj == 1) //Came from left
             {
                 if (f[i, j + 1] < f[i + 1, j + 1]) // Right < Diag
-                {
-                    Debug.Log("Moving Right From Left");
+                {                    
                     foreach (bodyAngle.bodyAngle joint in joints)
                     {
                         joint.sumRef += joint.refData[j - 1];
@@ -346,8 +416,7 @@ public class DTWmodelsquat : MonoBehaviour
                     counterY++;
                 }
                 else
-                {
-                    Debug.Log("Moving Diagonal From Left");
+                {                    
                     averagePath(ref joints, i, j, counterX, counterY); // Calculate average
                     writeNdx(i, j); // Write the indices to a file
                     // Reset counters
@@ -369,22 +438,19 @@ public class DTWmodelsquat : MonoBehaviour
                 totalLength++;
                 if (f[i + 1, j + 1] <= f[i + 1, j] && f[i + 1, j + 1] <= f[i, j + 1]) // Diag is smallest
                 {
-                    Debug.Log("Moving Diagonal From Diagonal");
                     i++;
                     j++;
                     di = 1;
                     dj = 1;
                 }
                 else if (f[i + 1, j] <= f[i, j + 1]) // Up is smallest
-                {
-                    Debug.Log("Moving Up From Diagonal");
+                {                    
                     i++;
                     di = 1;
                     dj = 0;
                 }
                 else // Right is smallest
                 {
-                    Debug.Log("Moving Right From Diagonal");
                     j++;
                     di = 0;
                     dj = 1;
