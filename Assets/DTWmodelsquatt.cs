@@ -42,7 +42,7 @@ public class DTWmodelsquat : MonoBehaviour
 
         // Print the number of frames in the longest animation
         Debug.Log("Max Frame Count: " + maxFrameCount);
-        Application.targetFrameRate = -1;
+        Application.targetFrameRate = 60;
     }
 
     public void Update()
@@ -111,8 +111,7 @@ public class DTWmodelsquat : MonoBehaviour
                 stopWatchNM.Stop();
                 TimeSpan tsNDTW = stopWatchNM.Elapsed;
 
-                //Debug.Log("OE DTW: " + (tsOEDTW.Ticks / 10)  + ", Normal DTW: " + (tsNDTW.Ticks / 10) );
-                Debug.Log("Offset: " + j + ", End Index: " + totalLength);
+                Debug.Log("OE DTW: " + (tsOEDTW.Ticks / 10)  + ", Normal DTW: " + (tsNDTW.Ticks / 10) );
                 squatPercentEnd = 100 * (double) (j + totalLength) / (refDataLen);
 
                 // Printing stuff
@@ -260,8 +259,6 @@ public class DTWmodelsquat : MonoBehaviour
         List<double> startValues = CalculateTwoSidedMovingAverage(ref f, 4);
         double oldDiff = -1;
         List<Tuple<int, double>> ndxValuePairs = new List<Tuple<int, double>>();
-        System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-        sw.Start();
         for (int k = 1; k < startValues.Count; k++)
         {
             double newDiff = startValues[k] - startValues[k - 1];
@@ -283,9 +280,6 @@ public class DTWmodelsquat : MonoBehaviour
         // Grab the lowest one
         int lowest = smallestIndex(ref ndxLst);
         int j = indices[lowest];
-        sw.Stop();
-        TimeSpan ts = sw.Elapsed;
-        Debug.Log("Total time in us: " + (ts.Ticks/10));
         squatPercentStart = 100 * (double) j / ((double) f.GetLength(1)-1);
         //saveFMatrix(f);
         return j;
