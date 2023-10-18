@@ -39,6 +39,8 @@ namespace bodyAngle{
         [System.NonSerialized]
         public List<double> avgErrors = new List<double>();
 
+        List<double> refDataList = new List<double>();
+
         public float getAngle()
         {
             Vector3 lowerVec;
@@ -88,16 +90,16 @@ namespace bodyAngle{
             //}
         }
 
-        public void saveRef(int ndx)
+        public void saveRef()
         {
-            this.refData[ndx] = this.getAngle();
+            this.refDataList.Add(this.getAngle());
         }
 
         public void storeReference() {
             string path = Directory.GetCurrentDirectory();
             using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt", true))
             {
-                foreach (double value in this.refData)
+                foreach (double value in this.refDataList)
                 {
                     sw.Write(value + " ");
                 }

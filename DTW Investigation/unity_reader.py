@@ -17,15 +17,19 @@ def show_matrix():
             str_row = lines[row].strip().split(' ')
             for col in range(dims[1]):
                 mat[row, col] = float(str_row[col])
-        #new_mat = np.flipud(mat)
         new_mat = mat
         np.set_printoptions(threshold=float('inf'))
         fig, ax = plt.subplots()
-        ax.matshow(new_mat, cmap=plt.cm.Blues)
-        for i in range(dims[1]):
-            for j in range(dims[0]):
-                c = round(new_mat[j, i])
-                ax.text(i, j, str(c), va='center', ha='center', fontsize = 10)
+        initials = new_mat[0, :]
+        diffs = np.diff(initials)
+        print(initials)
+        ax.plot(initials)
+        ax.plot(diffs)
+        #ax.matshow(new_mat, cmap=plt.cm.Blues)
+        #for i in range(dims[1]):
+        #    for j in range(dims[0]):
+        #        c = round(new_mat[j, i])
+        #        ax.text(i, j, str(c), va='center', ha='center', fontsize = 10)
         fig.show()
     
 
@@ -163,6 +167,7 @@ def plot_comparison():
 def plot_ref():
     dir_path = "../ReferenceAngles/Squat/"
     paths = os.listdir(dir_path) #Get all the .txt files
+    paths = ["RightKnee.txt", "LeftKnee.txt", "RightAnkle.txt", "LeftAnkle.txt"] 
     for i in range(0, len(paths), 4): #Plot 2x2
         graphs_left = len(paths) - i
         if graphs_left == 1:
@@ -194,5 +199,5 @@ def plot_ref():
 #plot_avg()
 #plot_ref()
 plot_verif()
-show_matrix()
+#show_matrix()
 
