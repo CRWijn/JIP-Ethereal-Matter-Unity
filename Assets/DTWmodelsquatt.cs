@@ -279,6 +279,7 @@ public class DTWmodelsquat : MonoBehaviour
         
         double oldDiff = -1;
         List<Tuple<int, double>> ndxValuePairs = new List<Tuple<int, double>>();
+        // Looking when the d/dt changes sign from negative to positive (minimum)
         for (int k = 1; k < startValues.Count; k++)
         {
             double newDiff = startValues[k] - startValues[k - 1];

@@ -13,9 +13,6 @@ namespace DTW
         double[] y;
         double[,] distance;
         double[,] f;
-        public ArrayList pathX;
-        public ArrayList pathY;
-        ArrayList distanceList;
 
         public OEDTW(double[] _live, double[] _ref)
         {
@@ -97,10 +94,6 @@ namespace DTW
         double[] y;
         double[,] distance;
         double[,] f;
-        public ArrayList pathX;
-        public ArrayList pathY;
-        ArrayList distanceList;
-        double sum;
 
         // Standard DTW
         public SimpleDTW(double[] _x, double[] _y)
