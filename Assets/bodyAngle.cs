@@ -41,6 +41,7 @@ namespace bodyAngle{
 
         List<double> refDataList = new List<double>();
 
+        // Calculate the angle
         public float getAngle()
         {
             Vector3 lowerVec;
@@ -54,11 +55,13 @@ namespace bodyAngle{
             return Vector3.Angle(upperVec, lowerVec);
         }
 
+        // Used to send the message of bad form for this joint
         public void printMsg()
         {
             Debug.Log(badFormMsg);
         }
 
+        // Store the angle within this frame
         public void saveData(int ndx) 
         {
             this.liveData[ndx] = this.getAngle();
@@ -67,34 +70,50 @@ namespace bodyAngle{
         public void checkFrame()
         {
             this.avgErrors.Sort(); // Sort the list from least to greatest
-            int midNdx = this.avgErrors.Count / 2;
-            int lowerNdx = this.avgErrors.Count / 4;
-            int upperNdx = 3 * this.avgErrors.Count / 4;
-            double iqr = this.avgErrors[upperNdx] - this.avgErrors[lowerNdx];
-            double eps = this.avgErrors[midNdx] + (1.5 * iqr); // Outliers are larger than eps (maybe should change this to single sided iqr)
             double sumError = 0;
             int totalCounted = 0;
-            foreach (double error in this.avgErrors)
+            double avgError = 0;
+            if (avgErrors.Count < 3) // Can't calculate iqr for data less than 3
             {
-                if (error < eps)
+                foreach (double error in this.avgErrors)
                 {
                     sumError += error;
                     totalCounted++;
                 }
+                avgError = sumError / (double) totalCounted;
+                Debug.Log("Avg Error " + this.jointName + ": " + avgError);
+                return;
             }
-            double avgError = sumError / (double) totalCounted;
-            //Debug.Log("Avg Error: " + avgError);
+            int midNdx = this.avgErrors.Count / 2; // Median index
+            int lowerNdx = this.avgErrors.Count / 4; // Lower quartile index
+            int upperNdx = 3 * (this.avgErrors.Count / 4); // Upper quartile index
+            double iqr = this.avgErrors[upperNdx] - this.avgErrors[lowerNdx]; // Interquartile range
+            double eps = this.avgErrors[midNdx] + (1.5 * iqr); // Outliers are larger than eps (maybe should change this to single sided iqr)
+            
+            foreach (double error in this.avgErrors)
+            {
+                if (error <= eps)
+                {
+                    sumError += error; // Only count errors that are within our range
+                    totalCounted++;
+                }
+            }
+            avgError = sumError / (double) totalCounted;
+            Debug.Log("Avg Error " + this.jointName + ": " + avgError);
+            //Underneath here is where you would call a function for processing an error
             //if (avgError > this.errorMargin)
             //{
             //    Debug.Log(this.badFormMsg);
             //}
         }
 
+        // Save data to the reference list
         public void saveRef()
         {
             this.refDataList.Add(this.getAngle());
         }
 
+        // Write the reference list
         public void storeReference() {
             string path = Directory.GetCurrentDirectory();
             using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt", true))
@@ -106,7 +125,9 @@ namespace bodyAngle{
             }
         }
 
+        // Wipe a reference data file
         public void resetFile() {
+            this.refDataList.Clear();
             string path = Directory.GetCurrentDirectory();
             using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt"))
             {
@@ -114,6 +135,7 @@ namespace bodyAngle{
             }
         }
 
+        // Read the reference data from a file
         public void readReference() {
             string path = Directory.GetCurrentDirectory();
             try 
@@ -166,29 +188,6 @@ namespace bodyAngle{
             {
                 Debug.Log(e);
                 throw new InvalidOperationException("Must save data first!");
-            }
-        }
-
-        public void dump()
-        {
-            string path = Directory.GetCurrentDirectory();
-            using (StreamWriter sw = new StreamWriter(path + "/DTW Investigation/DUMP_" + this.jointName + ".txt"))
-            {
-                for (int i = 0; i < this.liveData.Length; i++) {
-                    sw.Write(this.liveData[i]);
-                    if (i < this.liveData.Length - 1)
-                    {
-                        sw.Write(' ');
-                    }
-                }
-                sw.Write('\n');
-                for (int i = 0; i < this.refData.Length; i++) {
-                    sw.Write(this.refData[i]);
-                    if (i < this.refData.Length - 1)
-                    {
-                        sw.Write(' ');
-                    }
-                }
             }
         }
     }

@@ -13,12 +13,13 @@ public class DTWmodelsquat : MonoBehaviour
     public bool isRef;
     public bool writeRef;
     public bool toggleRec;
+    public bool useCostFunction;
+    public bool debugMode;
     public bodyAngle.bodyAngle[] joints;
     public int windowSize;
     
+    
     int CounterLive = 0;
-    double squatPercentStart = 0;
-    double squatPercentEnd = 0;
     
     Animator animator;
     int maxFrameCount = 0;
@@ -29,25 +30,25 @@ public class DTWmodelsquat : MonoBehaviour
         foreach (bodyAngle.bodyAngle joint in joints)//Set array sizes
         {
             Array.Resize<double>(ref joint.liveData, windowSize);
-            if (!isRef) {joint.readReference();}
+            if (!isRef) joint.readReference(); // Read all the reference data from files
         }
 
         if (writeRef)
         {
             foreach (bodyAngle.bodyAngle joint in joints)
             {
-                joint.resetFile();
+                joint.resetFile(); // If we're writing new reference data then we should reset all the reference data
             }
         }
 
         // Print the number of frames in the longest animation
         Debug.Log("Max Frame Count: " + maxFrameCount);
-        Application.targetFrameRate = 60;
+        Application.targetFrameRate = 60; // Set the application frame rate
     }
 
     public void Update()
     {   
-        if (Input.GetKeyDown("space") && isRef)
+        if (Input.GetKeyDown("space") && isRef) // If writing of ref data is enabled and the model is selected as reference then space is used to start and stop recording reference data
         {
             if (writeRef)
             {
@@ -89,38 +90,45 @@ public class DTWmodelsquat : MonoBehaviour
 
             if (CounterLive == (windowSize - 1))
             {
+                if (debugMode) { // Write data to plot in python
+                    writeArray<double>("refData", joints[0].refData); // Matching ref
+                    writeArray<double>("liveData", joints[0].liveData); // Matching live
+                    writeArray<double>("compareRefData", joints[2].refData); // Comparison ref
+                    writeArray<double>("compareLiveData", joints[2].liveData); // Comparison live
+                }
                 System.Diagnostics.Stopwatch stopWatchOE = new System.Diagnostics.Stopwatch();
                 System.Diagnostics.Stopwatch stopWatchNM = new System.Diagnostics.Stopwatch();
-                // DTW
+                // Compute the open begin DTW, if you aren't using cost functions you could just calculate the distances between live[0] and ref[i] and pass that forward (much faster)
                 OEDTW oeDTW = new OEDTW(joints[0].liveData, joints[0].refData);
-                stopWatchOE.Start();
-                oeDTW.computeDTW();
-                // Path through DTW
+                stopWatchOE.Start(); // Used to report how long it takes to find the start point
+                oeDTW.computeDTW(); // Execute the open begin DTW
+                // Get the estimated begin of the live in the ref
                 int j = getFirstNdx(oeDTW);
                 stopWatchOE.Stop();
                 TimeSpan tsOEDTW = stopWatchOE.Elapsed;
 
+                // Only use reference data from the start point that was calculated
                 int refDataLen = joints[0].refData.Length;
-                double[] truncatedRef = new double[refDataLen-j];
+                double[] truncatedRef = new double[refDataLen-j]; // Cut anything thats not needed
                 Array.Copy(joints[0].refData, j, truncatedRef, 0, refDataLen-j);
 
-                stopWatchNM.Start();
+                stopWatchNM.Start(); // Time the pathing 
                 SimpleDTW normalDTW = new SimpleDTW(joints[0].liveData, truncatedRef);
                 normalDTW.computeDTW();
-                int totalLength = shortestPath(ref joints, normalDTW, j);
+                int totalLength = shortestPath(ref joints, normalDTW, j); // Find the least cost path
                 stopWatchNM.Stop();
                 TimeSpan tsNDTW = stopWatchNM.Elapsed;
 
-                Debug.Log("OE DTW: " + (tsOEDTW.Ticks / 10)  + ", Normal DTW: " + (tsNDTW.Ticks / 10) );
-                squatPercentEnd = 100 * (double) (j + totalLength) / (refDataLen);
+                // Print the timing in microseconds
+                Debug.Log("OE DTW: " + (tsOEDTW.Ticks / 10)  + "us, Normal DTW: " + (tsNDTW.Ticks / 10) + "us");
 
-                // Printing stuff
-                Debug.Log(squatPercentStart + "% - " + squatPercentEnd + "%");
-                Debug.Log("Dumping");
-                joints[0].dump();
-                joints[0].checkFrame();
-                //double otherAvg = joints[0].sumDiff / (double) totalLength;
-                //Debug.Log("Other AVG: " + otherAvg);
+                // Dumping data
+
+                // Check all errors
+                for (int i = 1; i < joints.Length; i++)
+                {
+                    joints[i].checkFrame();
+                }
                 CounterLive = 0;
             }
             else
@@ -130,6 +138,7 @@ public class DTWmodelsquat : MonoBehaviour
         }
      }
 
+     // This function writes a nothing to a file which essentially resets it
      public void resetNdx() {
          string path = Directory.GetCurrentDirectory() + "/DTW Investigation/DUMP_IANDJ.txt";
          using (StreamWriter sw = new StreamWriter(path))
@@ -138,6 +147,7 @@ public class DTWmodelsquat : MonoBehaviour
          }
      }
 
+     // This function writes the received i and j to a file called DUMP_IANDJ for plotting in python
      public void writeNdx(int i, int j)
      {
          string path = Directory.GetCurrentDirectory() + "/DTW Investigation/DUMP_IANDJ.txt";
@@ -147,6 +157,7 @@ public class DTWmodelsquat : MonoBehaviour
          }
      }
 
+     // This function is used to save an entire matrix for plotting in python
      public void saveFMatrix(double[,] f)
      {
          string path = Directory.GetCurrentDirectory() + "/DTW Investigation/FMatrix.txt";
@@ -167,6 +178,7 @@ public class DTWmodelsquat : MonoBehaviour
          }
      }
 
+     // This function is used to calculate the cost of a certain path
      public double pathWeight (ref double[,] f, int j)
      {
         // Initialisation
@@ -174,7 +186,6 @@ public class DTWmodelsquat : MonoBehaviour
         int i = 1;
         double pathSum = 0;
         int totalLength = 0;
-        resetNdx();
         int di = 1;
         int dj = 1;
         //*------------------------------------------
@@ -237,6 +248,7 @@ public class DTWmodelsquat : MonoBehaviour
         return pathSum / (double) totalLength;
      }
 
+     // This function gets the smallest number in an array and returns the index of it
      public int smallestIndex(ref double[] ndxLst)
      {
          int ndx = 0;
@@ -252,11 +264,19 @@ public class DTWmodelsquat : MonoBehaviour
          return ndx;
      }
 
+     // This function is used to find the frame in the reference data that best matches the first frame in the live capture segment
      public int getFirstNdx(OEDTW oeDTW)
      {
-        // Go through all the first values and look when it goes from negative to positive or to 0 (not from 0 to positive or 0)
+        // Get the open begin DTW matrix. If you don't use cost function you can easily just use the distances instead of an entire matrix (much faster)
         double[,] f = oeDTW.getFMatrix();
+        double[] refRow = new double[f.GetLength(1)-1]; // Reference data distance to first frame
+        for (int i = 1; i < f.GetLength(1); i++) // Fill in the reference data with values from the matrix
+        {
+            refRow[i - 1] = f[1, i];
+        }
+        
         List<double> startValues = CalculateTwoSidedMovingAverage(ref f, 4);
+        
         double oldDiff = -1;
         List<Tuple<int, double>> ndxValuePairs = new List<Tuple<int, double>>();
         for (int k = 1; k < startValues.Count; k++)
@@ -269,22 +289,37 @@ public class DTWmodelsquat : MonoBehaviour
             oldDiff = newDiff;
         }
         // Do some statistical analysis to remove start points that are big   
-        List<int> indices = filterNdx(ref ndxValuePairs);
+        List<int> indices = filterNdx(ref ndxValuePairs);        
         double[] ndxLst = new double[indices.Count];
-        // Calculate cost functions on the remaining indices
-        for (int i = 0; i < indices.Count; i++)
-        {
-            ndxLst[i] = pathWeight(ref f, indices[i]);
-        }
-
         // Grab the lowest one
-        int lowest = smallestIndex(ref ndxLst);
+        int lowest = 0;
+        if (useCostFunction)
+        {
+            // Calculate cost functions on the selected indices
+            for (int i = 0; i < indices.Count; i++)
+            {
+                ndxLst[i] = pathWeight(ref f, indices[i]);
+            }
+            lowest = smallestIndex(ref ndxLst);
+        }
+        else
+        {
+            indices.Sort(); 
+            lowest = 0; // Basically grab the early most start point that hasn't been filtered out since most of the time DTW can correct for that
+        }
         int j = indices[lowest];
-        squatPercentStart = 100 * (double) j / ((double) f.GetLength(1)-1);
-        //saveFMatrix(f);
+        if (debugMode) // Write some values for plotting in python
+        {
+            writeArray<double>("frame0distances", refRow); // The distances from the first live frame to all the frames in the reference data
+            writeArray<double>("smoothedDistances", startValues); // The distances after smoothing
+            writeArray<int>("selectedIndices", indices); // Minimum indices
+            saveFMatrix(f); // Save the matrix
+            if (useCostFunction) writeArray<double>("selectedIndicesCosts", ndxLst); // The costs of the select indices
+        }
         return j;
      }
 
+    // This function is used to smooth curves by using a windowed average
     public List<double> CalculateTwoSidedMovingAverage(ref double[,] f, int windowSize)
     {
         List<double> movingAverageList = new List<double>();
@@ -297,7 +332,7 @@ public class DTWmodelsquat : MonoBehaviour
         
         for (int i = 1; i < f.GetLength(1); i++)
         {
-            //Begin & end process
+            //Begin & end process: just sum up all the values
             if (i <= windowSize + 1 || i >= f.GetLength(1) - windowSize - 1)
             {
                 int start = Math.Max(1, i - windowSize);
@@ -312,7 +347,7 @@ public class DTWmodelsquat : MonoBehaviour
                 avg = sum / (end - start + 1);
                 movingAverageList.Add(avg);
             }
-            //Middle process
+            //Middle process: only remove last value and add new value. This saves A LOT of time
             else
             {
                 avg -= f[1, i - windowSize - 1] / (2*windowSize + 1);
@@ -320,35 +355,28 @@ public class DTWmodelsquat : MonoBehaviour
                 movingAverageList.Add(avg);
             }
         }
-
         return movingAverageList;
     }
 
+    // This function is used to filter out indices. You can do some statistical analysis on this but we kept it simple
     public List<int> filterNdx(ref List<Tuple<int, double>> ndxValuePairs)
     {
+        // Sort the ndxValuePairs by their distance to the reference frames
         ndxValuePairs.Sort((x, y) => x.Item2.CompareTo(y.Item2));
         int iLen = ndxValuePairs.Count;
         List<int> retLst = new List<int>();
-        if (iLen < 3)
-        {
-            foreach (Tuple<int, double> pair  in ndxValuePairs)
-            {
-                retLst.Add(pair.Item1);
-            }
-            return retLst;
-        }
-        double lqr = ndxValuePairs[iLen/2].Item2 - ndxValuePairs[iLen/4].Item2;
-        double eps = ndxValuePairs[iLen/2].Item2 + lqr;
+        double eps = 5 * ndxValuePairs[0].Item2; // Our threshold is all values that are within 5x of the smallest index
         foreach (Tuple<int, double> pair  in ndxValuePairs) 
         {
             if (pair.Item2 <= eps)
             {
-                retLst.Add(pair.Item1);
+                retLst.Add(pair.Item1); // Only add the ones that fit our criteria
             }
         }
         return retLst;
     }
 
+    // This function plots the path through the DTW elements (frame matching)
     public int shortestPath(ref bodyAngle.bodyAngle[] joints, SimpleDTW dtw, int jOffset)
     {
 
@@ -356,17 +384,17 @@ public class DTWmodelsquat : MonoBehaviour
         //*------------------------------------------
         int i = 1;
         int j = 1;
-        double[,] f = dtw.getFMatrix();
+        double[,] f = dtw.getFMatrix();        
         foreach (bodyAngle.bodyAngle joint in joints)
         {
             joint.sumLive = joint.liveData[i - 1];
-            joint.sumRef = joint.refData[j - 1];
+            joint.sumRef = joint.refData[j + jOffset - 1];
             joint.sumDiff = 0;
             joint.avgErrors.Clear();
         }
         int counterX = 1;
         int counterY = 1;
-        resetNdx();
+        resetNdx(); // Reset the DUMP_IANDJ file
         int di = 1;
         int dj = 1;
         //*------------------------------------------
@@ -386,8 +414,8 @@ public class DTWmodelsquat : MonoBehaviour
                 }
                 else // Diag <= Up
                 {                    
-                    averagePath(ref joints, i, j, counterX, counterY); // Calculate average
-                    writeNdx(i, j+jOffset); // Write the indices to a file
+                    averagePath(ref joints, i, j + jOffset, counterX, counterY); // Calculate average
+                    if (debugMode) writeNdx(i, j+jOffset); // Write the indices to a file
                     // Reset counters
                     counterX = 1;
                     counterY = 1;
@@ -402,14 +430,14 @@ public class DTWmodelsquat : MonoBehaviour
                 {                    
                     foreach (bodyAngle.bodyAngle joint in joints)
                     {
-                        joint.sumRef += joint.refData[j - 1];
+                        joint.sumRef += joint.refData[j + jOffset - 1];
                     }   
                     counterY++;
                 }
                 else
                 {                    
                     averagePath(ref joints, i, j, counterX, counterY); // Calculate average
-                    writeNdx(i, j+jOffset); // Write the indices to a file
+                    if (debugMode) writeNdx(i, j+jOffset); // Write the indices to a file
                     // Reset counters
                     counterX = 1;
                     counterY = 1;
@@ -420,8 +448,8 @@ public class DTWmodelsquat : MonoBehaviour
             }
             else // Came from diagonal
             {
-                averagePath(ref joints, i, j, counterX, counterY); // Calculate average
-                writeNdx(i, j+jOffset); // Write the indices to a file
+                averagePath(ref joints, i, j + jOffset, counterX, counterY); // Calculate average
+                if (debugMode) writeNdx(i, j+jOffset); // Write the indices to a file
                 // Reset counters
                 counterX = 1;
                 counterY = 1;
@@ -447,13 +475,14 @@ public class DTWmodelsquat : MonoBehaviour
             }
         }
         // Need to write one more time for the last index
-        averagePath(ref joints, i, j, counterX, counterY); // Calculate average
-        writeNdx(i, j+jOffset); // Write the indices to a file
+        averagePath(ref joints, i, j + jOffset, counterX, counterY); // Calculate average
+        if (debugMode) writeNdx(i, j+jOffset); // Write the indices to a file
         //*------------------------------------------
-        saveFMatrix(f);
+        //saveFMatrix(f);
         return j;
     }
 
+    // This function is used to calculate the average for each included joint
     public void averagePath(ref bodyAngle.bodyAngle[] joints, int i, int j, int counterX, int counterY)
     {
         foreach (bodyAngle.bodyAngle joint in joints)
@@ -466,6 +495,34 @@ public class DTWmodelsquat : MonoBehaviour
 
             joint.sumLive = joint.liveData[i - 1];
             joint.sumRef = joint.refData[j - 1];
+        }
+    }
+
+    // A generic function to write arrays to a file
+    public void writeArray<T>(string fileName, T[] arr)
+    {
+        string path = Directory.GetCurrentDirectory() + "/DTW Investigation/Reporting/" + fileName + ".txt";
+        using (StreamWriter sw = new StreamWriter(path))
+        {
+            for (int i = 0; i < arr.Length; i++)
+            {
+                sw.Write(arr[i]);
+                if (i < arr.Length - 1) sw.Write(" ");
+            }
+        }
+    }
+
+    // A generic function to write lists to a file
+    public void writeArray<T>(string fileName, List<T> arr)
+    {
+        string path = Directory.GetCurrentDirectory() + "/DTW Investigation/Reporting/" + fileName + ".txt";
+        using (StreamWriter sw = new StreamWriter(path))
+        {
+            for (int i = 0; i < arr.Count; i++)
+            {
+                sw.Write(arr[i]);
+                if (i < arr.Count - 1) sw.Write(" ");
+            }
         }
     }
 }

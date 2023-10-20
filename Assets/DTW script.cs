@@ -6,7 +6,7 @@ using System.Collections;
 
 namespace DTW
 {
-
+    // Open Begin DTW
     public class OEDTW
     {
         double[] x;
@@ -24,14 +24,15 @@ namespace DTW
             distance = new double[x.Length, y.Length];
             f = new double[x.Length + 1, y.Length + 1];
 
-            for (int i = 0; i < x.Length; ++i)
+            for (int i = 0; i < x.Length; ++i) // Calculate distances between every single frame of the live and ref
             {
                 for (int j = 0; j < y.Length; ++j)
                 {
                     distance[i, j] = Math.Abs(x[i] - y[j]);
                 }
             }
-
+            
+            // Write -1 to each element of the matrix
             for (int i = 0; i <= x.Length; ++i)
             {
                 for (int j = 0; j <= y.Length; ++j)
@@ -40,22 +41,22 @@ namespace DTW
                 }
             }
 
+            // Set the live axis to infinite
             for (int i = 1; i <= x.Length; ++i)
             {
                 f[i, 0] = double.PositiveInfinity;
             }
+            // Set the ref axis to 0
             for (int j = 1; j <= y.Length; ++j)
             {
                 f[0, j] = 0;
             }
 
+            // Initial value of 0
             f[0, 0] = 0.0;
-
-            pathX = new ArrayList();
-            pathY = new ArrayList();
-            distanceList = new ArrayList();
         }
 
+        // Get the cumulative distances matrix
         public double[,] getFMatrix()
         {
             return f;
@@ -68,6 +69,7 @@ namespace DTW
 
         public void computeFForward()
         {
+            // You can implement different kind of minimum check patterns this one checks the previous one in live, the prev one in ref and the diagonal prev one
             for (int i = 1; i <= x.Length; ++i)
             {
                 for (int j = 1; j <= y.Length; ++j)
@@ -100,6 +102,7 @@ namespace DTW
         ArrayList distanceList;
         double sum;
 
+        // Standard DTW
         public SimpleDTW(double[] _x, double[] _y)
         {
             x = _x;
@@ -107,6 +110,7 @@ namespace DTW
             distance = new double[x.Length, y.Length];
             f = new double[x.Length + 1, y.Length + 1];
 
+            // Calculate distance from each ref frame to each live frame
             for (int i = 0; i < x.Length; ++i)
             {
                 for (int j = 0; j < y.Length; ++j)
@@ -115,6 +119,7 @@ namespace DTW
                 }
             }
 
+            // Put -1 in each element of the f matrix
             for (int i = 0; i <= x.Length; ++i)
             {
                 for (int j = 0; j <= y.Length; ++j)
@@ -123,6 +128,7 @@ namespace DTW
                 }
             }
 
+            // Set all values on the ref and live axis to infinite
             for (int i = 1; i <= x.Length; ++i)
             {
                 f[i, 0] = double.PositiveInfinity;
@@ -132,87 +138,25 @@ namespace DTW
                 f[0, j] = double.PositiveInfinity;
             }
 
+            // Initial cumulation value
             f[0, 0] = 0.0;
-            sum = 0.0;
-
-            pathX = new ArrayList();
-            pathY = new ArrayList();
-            distanceList = new ArrayList();
         }
 
-        public ArrayList getPathX()
-        {
-            return pathX;
-        }
-
-        public ArrayList getPathY()
-        {
-            return pathY;
-        }
-
-        public double getSum()
-        {
-            return sum;
-        }
-
+        // Get cumulative distances matrix
         public double[,] getFMatrix()
         {
             return f;
         }
 
-        public ArrayList getDistanceList()
-        {
-            return distanceList;
-        }
-
+        // Compute DTW
         public void computeDTW()
         {
-            sum = computeFBackward(x.Length, y.Length);
-            //sum = computeFForward();
+            computeFForward();
         }
 
-        public double computeFForward()
-        //Self-made DTW
-            // {
-            //     for (int i = 1; i <= x.Length; i++)
-            //     { 
-            //         f[i,1] = f[i-1,1] + distance[i,1];
-            //     }
-            //     for (int j = 1; j <= y.Length; j++)
-            //     { 
-            //         f[1,j] = f[1,j-1] + distance[1,j];
-            //     }              
-            //     for (int i = 1; i <= x.Length; ++i)
-            //     {
-            //         for (int j = 1; j <= y.Length; ++j)
-            //         {
-            //             if (f[i - 1, j] <= f[i - 1, j - 1] && f[i - 1, j] <= f[i, j - 1])
-            //             {
-            //                 f[i, j] = distance[i, j] + f[i - 1, j];
-            //             }
-            //             else if (f[i, j - 1] <= f[i - 1, j - 1] && f[i, j - 1] <= f[i - 1, j])
-            //             {
-            //                 f[i, j] = distance[i, j] + f[i, j - 1];
-            //             }
-            //             else if (f[i - 1, j - 1] <= f[i, j - 1] && f[i - 1, j - 1] <= f[i - 1, j])
-            //             {
-            //                 f[i, j] = distance[i, j] + f[i - 1, j - 1];
-            //             }
-            //         }
-            //     }
-            //     return f[x.Length, y.Length];
-            // }
-        
-        
-        
-        
-        
-        
-        
-        
-        //Original DTW
-        
+        public double computeFForward()        
         {
+            // You can implement different kind of minimum check patterns this one checks the previous one in live, the prev one in ref and the diagonal prev one
             for (int i = 1; i <= x.Length; ++i)
             {
                 for (int j = 1; j <= y.Length; ++j)
@@ -233,34 +177,5 @@ namespace DTW
             }
             return f[x.Length, y.Length];
         }
-
-        public double computeFBackward(int i, int j)
-        {
-            if (!(f[i, j] < 0.0))
-            {
-                return f[i, j];
-            }
-            else
-            {
-                if (computeFBackward(i - 1, j) <= computeFBackward(i, j - 1) && computeFBackward(i - 1, j) <= computeFBackward(i - 1, j - 1)
-                    && computeFBackward(i - 1, j) < double.PositiveInfinity)
-                {
-                    f[i, j] = distance[i - 1, j - 1] + computeFBackward(i - 1, j);
-                }
-                else if (computeFBackward(i, j - 1) <= computeFBackward(i - 1, j) && computeFBackward(i, j - 1) <= computeFBackward(i - 1, j - 1)
-                    && computeFBackward(i, j - 1) < double.PositiveInfinity)
-                {
-                    f[i, j] = distance[i - 1, j - 1] + computeFBackward(i, j - 1);
-                }
-                else if (computeFBackward(i - 1, j - 1) <= computeFBackward(i - 1, j) && computeFBackward(i - 1, j - 1) <= computeFBackward(i, j - 1)
-                    && computeFBackward(i - 1, j - 1) < double.PositiveInfinity)
-                {
-                    f[i, j] = distance[i - 1, j - 1] + computeFBackward(i - 1, j - 1);
-                }
-            }
-            return f[i, j];
-        }
-
-
     }
 }
