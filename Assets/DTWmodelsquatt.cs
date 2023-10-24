@@ -15,6 +15,7 @@ public class DTWmodelsquat : MonoBehaviour
     public bool toggleRec;
     public bool useCostFunction;
     public bool debugMode;
+    public bool OBEDTW;
     public bodyAngle.bodyAngle[] joints;
     public int windowSize;
     
@@ -96,33 +97,48 @@ public class DTWmodelsquat : MonoBehaviour
                     writeArray<double>("compareRefData", joints[2].refData); // Comparison ref
                     writeArray<double>("compareLiveData", joints[2].liveData); // Comparison live
                 }
-                System.Diagnostics.Stopwatch stopWatchOE = new System.Diagnostics.Stopwatch();
-                System.Diagnostics.Stopwatch stopWatchNM = new System.Diagnostics.Stopwatch();
-                // Compute the open begin DTW, if you aren't using cost functions you could just calculate the distances between live[0] and ref[i] and pass that forward (much faster)
-                OEDTW oeDTW = new OEDTW(joints[0].liveData, joints[0].refData);
-                stopWatchOE.Start(); // Used to report how long it takes to find the start point
-                oeDTW.computeDTW(); // Execute the open begin DTW
-                // Get the estimated begin of the live in the ref
-                int j = getFirstNdx(oeDTW);
-                stopWatchOE.Stop();
-                TimeSpan tsOEDTW = stopWatchOE.Elapsed;
+                if (!OBEDTW)
+                {
+                    System.Diagnostics.Stopwatch stopWatchOE = new System.Diagnostics.Stopwatch();
+                    System.Diagnostics.Stopwatch stopWatchNM = new System.Diagnostics.Stopwatch();
+                    // Compute the open begin DTW, if you aren't using cost functions you could just calculate the distances between live[0] and ref[i] and pass that forward (much faster)
+                    OEDTW oeDTW = new OEDTW(joints[0].liveData, joints[0].refData);
+                    stopWatchOE.Start(); // Used to report how long it takes to find the start point
+                    oeDTW.computeDTW(); // Execute the open begin DTW
+                    // Get the estimated begin of the live in the ref
+                    int j = getFirstNdx(oeDTW);
+                    stopWatchOE.Stop();
+                    TimeSpan tsOEDTW = stopWatchOE.Elapsed;
 
-                // Only use reference data from the start point that was calculated
-                int refDataLen = joints[0].refData.Length;
-                double[] truncatedRef = new double[refDataLen-j]; // Cut anything thats not needed
-                Array.Copy(joints[0].refData, j, truncatedRef, 0, refDataLen-j);
+                    // Only use reference data from the start point that was calculated
+                    int refDataLen = joints[0].refData.Length;
+                    double[] truncatedRef = new double[refDataLen-j]; // Cut anything thats not needed
+                    Array.Copy(joints[0].refData, j, truncatedRef, 0, refDataLen-j);
 
-                stopWatchNM.Start(); // Time the pathing 
-                SimpleDTW normalDTW = new SimpleDTW(joints[0].liveData, truncatedRef);
-                normalDTW.computeDTW();
-                int totalLength = shortestPath(ref joints, normalDTW, j); // Find the least cost path
-                stopWatchNM.Stop();
-                TimeSpan tsNDTW = stopWatchNM.Elapsed;
+                    stopWatchNM.Start(); // Time the pathing 
+                    SimpleDTW normalDTW = new SimpleDTW(joints[0].liveData, truncatedRef);
+                    normalDTW.computeDTW();
+                    int totalLength = shortestPath(ref joints, normalDTW, j); // Find the least cost path
+                    stopWatchNM.Stop();
+                    TimeSpan tsNDTW = stopWatchNM.Elapsed;
 
-                // Print the timing in microseconds
-                Debug.Log("OE DTW: " + (tsOEDTW.Ticks / 10)  + "us, Normal DTW: " + (tsNDTW.Ticks / 10) + "us");
+                    // Print the timing in microseconds
+                    Debug.Log("OE DTW: " + (tsOEDTW.Ticks / 10)  + "us, Normal DTW: " + (tsNDTW.Ticks / 10) + "us");
+                }
+                else 
+                {
+                    System.Diagnostics.Stopwatch stopWatch = new System.Diagnostics.Stopwatch();
+                    stopWatch.Start();
 
-                // Dumping data
+                    OBEDTW dtw = new OBEDTW(joints[0].liveData, joints[0].refData);
+                    Tuple<int[], int[]> indices = dtw.computeDTW();
+                    processIndices(dtw.getFMatrix(), indices.Item1, indices.Item2);
+
+                    stopWatch.Stop();
+                    TimeSpan ts = stopWatch.Elapsed;
+                    // Print the timing in microseconds
+                    Debug.Log("Total time: " + (ts.Ticks / 10) + "us");
+                }
 
                 // Check all errors
                 for (int i = 1; i < joints.Length; i++)
@@ -135,6 +151,114 @@ public class DTWmodelsquat : MonoBehaviour
             {
                 CounterLive++;
             }
+        }
+     }
+
+     public void processIndices(double[,] f, int[] iList, int[] jList)
+     {
+        foreach (bodyAngle.bodyAngle joint in joints)
+        {
+            joint.sumLive = joint.liveData[iList[0] - 1];
+            joint.sumRef = joint.refData[jList[0] - 2];
+            joint.sumDiff = 0;
+            joint.avgErrors.Clear();
+        }
+        int counterX = 1;
+        int counterY = 1;
+        int prevI = iList[0] - iList[1];
+        int prevJ = jList[0] - jList[1];
+        resetNdx(); // Reset the DUMP_IANDJ file
+        for (int k = 1; k < iList.Length - 1; k++)
+        {
+            if (prevI == 0)
+            {
+                if (iList[k] - iList[k + 1] == 0)
+                {
+                    foreach (bodyAngle.bodyAngle joint in joints)
+                    {
+                        joint.sumLive += joint.liveData[iList[k] - 1];
+                    }
+                    counterX++;
+                }
+                else
+                {
+                    averagePath(ref joints, iList[k], jList[k] - 1, counterX, counterY); // Calculate average
+                    if (debugMode) writeNdx(iList[k], jList[k]); // Write the indices to a file
+                    // Reset counters
+                    counterX = 1;
+                    counterY = 1;
+                }
+            }
+            else if (prevJ == 0)
+            {
+                if (jList[k] - jList[k + 1] == 0)
+                {
+                    foreach (bodyAngle.bodyAngle joint in joints)
+                    {
+                        joint.sumRef += joint.refData[jList[k] - 2];
+                    }
+                    counterY++;
+                }
+                else
+                {
+                    averagePath(ref joints, iList[k], jList[k] - 1, counterX, counterY); // Calculate average
+                    if (debugMode) writeNdx(iList[k], jList[k]); // Write the indices to a file
+                    // Reset counters
+                    counterX = 1;
+                    counterY = 1;
+                }
+            }
+            else
+            {
+                if (iList[k] - iList[k + 1] == 0)
+                {
+                    foreach (bodyAngle.bodyAngle joint in joints)
+                    {
+                        joint.sumLive += joint.liveData[iList[k] - 1];
+                    }
+                    counterX++;
+                }
+                else if (jList[k] - jList[k + 1] == 0)
+                {
+                    foreach (bodyAngle.bodyAngle joint in joints)
+                    {
+                        joint.sumRef += joint.refData[jList[k] - 2];
+                    }
+                    counterY++;
+                }
+                else
+                {
+                    averagePath(ref joints, iList[k], jList[k] - 1, counterX, counterY); // Calculate average
+                    if (debugMode) writeNdx(iList[k], jList[k]); // Write the indices to a file
+                    // Reset counters
+                    counterX = 1;
+                    counterY = 1;
+                }
+            }
+            prevI = iList[k] - iList[k + 1];
+            prevJ = jList[k] - jList[k + 1];
+        }
+        if (prevI == 0)
+        {
+            foreach (bodyAngle.bodyAngle joint in joints)
+            {
+                joint.sumLive += joint.liveData[iList[iList.Length - 1] - 1];
+            }
+            counterX++;
+        }
+        if (prevJ == 0)
+        {
+            foreach (bodyAngle.bodyAngle joint in joints)
+            {
+                joint.sumRef += joint.refData[jList[jList.Length - 1] - 2];
+            }
+            counterY++;
+        }
+        averagePath(ref joints, iList[iList.Length - 1], jList[jList.Length - 1] - 1, counterX, counterY);
+        if (debugMode)
+        {
+            writeNdx(iList[iList.Length - 1], jList[jList.Length - 1]); // Write the indices to a file
+            saveFMatrix(f);
         }
      }
 

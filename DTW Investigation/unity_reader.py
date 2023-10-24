@@ -28,12 +28,15 @@ def show_matrix():
         ax.matshow(new_mat, cmap=plt.cm.Blues)
         for i in range(dims[1]):
             for j in range(dims[0]):
-                c = round(new_mat[j, i])
+                try:
+                    c = round(new_mat[j, i])
+                except:
+                    c = new_mat[j, i]
                 ax.text(i, j, str(c), va='center', ha='center', fontsize = 10)
         fig.show()
     
 
-def plot_verif():
+def plot_verif(save_path):
     path = "DUMP_RightKnee.txt"
     path2 = "DUMP_IANDJ.txt"
     live = []
@@ -83,7 +86,9 @@ def plot_verif():
     ax.set_xlabel("Live Frames")
     ax.set_ylabel("Ref Frames")
     plt.grid()
-    fig2.show()
+    fig2.set_size_inches(21, 10)
+    plt.savefig(save_path + "frame_matching.png")
+    #fig2.show()
 
     fig3, axs = plt.subplots(2, 1)
     axs[0].plot(live)
@@ -196,7 +201,7 @@ def plot_ref():
             ax[j].set_title(paths[i+j])
         fig.show()
 
-def plot_report():
+def plot_report(plot_cost, save_path):
     dir_path = "Reporting/"
 
     # Ref and Live
@@ -217,7 +222,9 @@ def plot_report():
             ylim[1] = max(data + [ylim[1]])
     for ax in axs:
         ax.set_ylim(ylim)
-    fig.show()
+    fig.set_size_inches(21, 10)
+    plt.savefig(save_path + "live_and_ref_matching.png")
+    #fig.show()
 
     # Ref and Live Other Joint
     fig, axs = plt.subplots(2, 1)
@@ -239,7 +246,9 @@ def plot_report():
             ylim[1] = max(data + [ylim[1]])
     for ax in axs:
         ax.set_ylim(ylim)
-    fig.show()
+    fig.set_size_inches(21, 10)
+    plt.savefig(save_path + "live_and_ref_comparison.png", bbox_inches='tight')
+    #fig.show()
 
     live = np.array(lists[0])
     ref = np.array(lists[1])
@@ -270,7 +279,9 @@ def plot_report():
     ax.set_ylabel("Angle ($^\circ$)")
     ax.set_xlabel("Time Index")
     ax.legend(['live','ref'])
-    fig.show()
+    fig.set_size_inches(21, 10)
+    plt.savefig(save_path + "comparison.png")
+    #fig.show()
 
     # Live First Frame Distance
     fig, ax = plt.subplots()
@@ -283,7 +294,9 @@ def plot_report():
         ax.set_title("Live First Frame Distance To All Reference Frames")
         ax.set_xlabel("Reference Time Index")
         ax.set_ylabel("|live[0]-ref[time_index]|")
-    fig.show()
+    fig.set_size_inches(21, 10)
+    plt.savefig(save_path + "first_frame_dist.png")
+    #fig.show()
 
     # Smoothed Distances
     fig, ax = plt.subplots()
@@ -303,18 +316,21 @@ def plot_report():
         for datum in data_str:
             ndx_data.append(int(datum))
         ax.plot(ndx_data, data[ndx_data], 'ro')
-    with open(dir_path + "selectedIndicesCosts.txt", 'r') as file:
-        data_str = file.readline().split(' ')
-        cost_data = []
-        for datum in data_str:
-            cost_data.append(float(datum))
-        cost_data = np.round(cost_data)
-        for i, cost in enumerate(cost_data):
-            x = ndx_data[i] - 10
-            y = data[x] + 2
-            #plt.text(x, y, cost)
+    if (plot_cost):
+        with open(dir_path + "selectedIndicesCosts.txt", 'r') as file:
+            data_str = file.readline().split(' ')
+            cost_data = []
+            for datum in data_str:
+                cost_data.append(float(datum))
+            cost_data = np.round(cost_data)
+            for i, cost in enumerate(cost_data):
+                x = ndx_data[i] - 10
+                y = data[x] + 2
+                #plt.text(x, y, cost)
     ax.legend(["Data", "Detected Minimum"])
-    fig.show()
+    fig.set_size_inches(21, 10)
+    plt.savefig(save_path + "smoothed_and_minimums.png")
+    #fig.show()
 
 def plot_unsmoothed():
     dir_path = "Reporting/"
@@ -346,8 +362,9 @@ def plot_unsmoothed():
 #plot_comparison()
 #plot_avg()
 #plot_ref()
-plot_verif()
 #show_matrix()
-plot_report()
+save_path = "GraphsTemp/"
+plot_verif(save_path)
+plot_report(False, save_path)
 #plot_unsmoothed()
 
