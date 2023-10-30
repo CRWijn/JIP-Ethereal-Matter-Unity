@@ -116,7 +116,7 @@ namespace bodyAngle{
         // Write the reference list
         public void storeReference() {
             string path = Directory.GetCurrentDirectory();
-            using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt", true))
+            using (StreamWriter sw = new StreamWriter(path + "/Assets/Resources/ReferenceAngles/Squat/" + this.jointName + ".txt", true))
             {
                 foreach (double value in this.refDataList)
                 {
@@ -129,7 +129,7 @@ namespace bodyAngle{
         public void resetFile() {
             this.refDataList.Clear();
             string path = Directory.GetCurrentDirectory();
-            using (StreamWriter sw = new StreamWriter(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt"))
+            using (StreamWriter sw = new StreamWriter(path + "/Assets/Resources/ReferenceAngles/Squat/" + this.jointName + ".txt"))
             {
                 sw.Write("");
             }
@@ -137,57 +137,46 @@ namespace bodyAngle{
 
         // Read the reference data from a file
         public void readReference() {
-            string path = Directory.GetCurrentDirectory();
-            try 
+            TextAsset ta = Resources.Load<TextAsset>("ReferenceAngles/Squat/" + this.jointName);
+            var arrayString = ta.text;
+            List<double> refDataReader = new List<double>();
+            double current = 0;
+            double bfrDec = 0.1;
+            foreach (char query in arrayString) 
             {
-                using (StreamReader sr = new StreamReader(path + "/ReferenceAngles/Squat/" + this.jointName + ".txt"))
+                if (query == ' ') // End of a number
                 {
-                    List<double> refDataReader = new List<double>();
-                    double current = 0;
-                    double bfrDec = 0.1;
-                    while (true) 
+                    refDataReader.Add(current);
+                    current = 0;
+                    bfrDec = 0.1;
+                }
+                else if (query == -1) // End of the file
+                {
+                    break;
+                }
+                else if ((char) query == (char) '.' || (char) query ==  ',') // Passing the decimal -> , and . for support for dutch and english unity
+                {
+                    bfrDec = 10;
+                }
+                else // Another digit
+                {
+                    int digit = (char) query - '0';
+                    if (bfrDec == 0.1) // Tens
                     {
-                        int query = sr.Read();
-                        if ((char) query == ' ') // End of a number
-                        {
-                            refDataReader.Add(current);
-                            current = 0;
-                            bfrDec = 0.1;
-                        }
-                        else if (query == -1) // End of the file
-                        {
-                            break;
-                        }
-                        else if ((char) query == (char) '.' || (char) query ==  ',') // Passing the decimal -> , and . for support for dutch and english unity
-                        {
-                            bfrDec = 10;
-                        }
-                        else // Another digit
-                        {
-                            int digit = (char) query - '0';
-                            if (bfrDec == 0.1) // Tens
-                            {
-                                current = (current / bfrDec) + (double) digit;
-                            }
-                            else // Tenths
-                            {
-                                current += (double) digit / bfrDec;
-                                bfrDec *= 10;
-                            }
-                        }
+                        current = (current / bfrDec) + (double) digit;
                     }
-                    int refDataLen = refDataReader.Count;
-                    Array.Resize<double>(ref this.refData, refDataLen);
-                    for (int i = 0; i < refDataLen; i++)
+                    else // Tenths
                     {
-                        this.refData[i] = refDataReader[i];
+                        current += (double) digit / bfrDec;
+                        bfrDec *= 10;
                     }
                 }
             }
-            catch (Exception e)
+            int refDataLen = refDataReader.Count;
+            Array.Resize<double>(ref this.refData, refDataLen);
+            for (int i = 0; i < refDataLen; i++)
             {
-                Debug.Log(e);
-                throw new InvalidOperationException("Must save data first!");
+                this.refData[i] = refDataReader[i];
             }
         }
     }
